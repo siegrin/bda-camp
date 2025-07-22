@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cart-context";
-import { logRentalCheckout } from "@/lib/actions";
+import { getSettings, logRentalCheckout } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import type { SiteSettings, CartItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,17 +24,28 @@ const generateWhatsAppMessage = (cart: CartItem[], total: number) => {
 };
 
 
-export default function CheckoutPage({ settings }: { settings: SiteSettings | null }) {
+export default function CheckoutPage() {
     const { cart, total, clearCart } = useCart();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
+    const [settings, setSettings] = useState<SiteSettings | null>(null);
+    const [isSettingsLoading, setSettingsLoading] = useState(true);
 
     useEffect(() => {
-        if (cart.length === 0) {
+        if (!isSettingsLoading && cart.length === 0) {
             router.replace('/cart');
         }
-    }, [cart.length, router]);
+    }, [cart.length, router, isSettingsLoading]);
     
+    useEffect(() => {
+        async function loadSettings() {
+            setSettingsLoading(true);
+            const loadedSettings = await getSettings();
+            setSettings(loadedSettings);
+            setSettingsLoading(false);
+        }
+        loadSettings();
+    }, []);
     
     const handleCheckout = async () => {
         if (!settings?.whatsapp_number) {
@@ -54,13 +65,17 @@ export default function CheckoutPage({ settings }: { settings: SiteSettings | nu
         const message = generateWhatsAppMessage(cart, total);
         const whatsappUrl = `https://wa.me/${settings.whatsapp_number}?text=${message}`;
         
-        clearCart();
-        
-        router.push('/profile');
+        // Open WhatsApp first to ensure it's not blocked
         window.open(whatsappUrl, '_blank');
-        
-        // No need to set isLoading to false as the page is navigating away
+
+        // Then, clear the cart and navigate
+        clearCart();
+        router.push('/profile');
     };
+    
+    if (isSettingsLoading) {
+        return <LoadingScreen message="Memuat informasi checkout..." />;
+    }
     
     if (cart.length === 0) {
          return (

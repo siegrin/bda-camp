@@ -143,6 +143,10 @@ export default function EquipmentPage() {
         breadcrumbItems.push({ name: subcategory, href: `/equipment?category=${encodeURIComponent(category)}&subcategory=${encodeURIComponent(subcategory)}` });
     }
   }
+  
+    if (isLoading) {
+        return <LoadingScreen message="Memuat Katalog..." />;
+    }
 
   return (
     <div className="container mx-auto px-4 py-8 md:py-12">
@@ -197,9 +201,7 @@ export default function EquipmentPage() {
                 </div>
             </div>
 
-             {isLoading ? (
-                <LoadingScreen message="Memuat Katalog..." />
-            ) : paginatedProducts.length > 0 ? (
+             {paginatedProducts.length > 0 ? (
                 <>
                 <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 sm:gap-6">
                     {paginatedProducts.map((product) => (

@@ -4,15 +4,77 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { X, ShoppingCart } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useCart } from "@/context/cart-context";
+import { useCart, type CartItem as CartItemType } from "@/context/cart-context";
 import { formatPrice } from "@/lib/utils";
+import { Separator } from "@/components/ui/separator";
+
+function CartItem({ item }: { item: CartItemType }) {
+    const { updateItemDays, updateItemQuantity, removeItem } = useCart();
+    
+    return (
+        <div className="flex flex-col sm:flex-row gap-4 py-4">
+            <Image
+                src={item.images?.[0] || 'https://placehold.co/600x400.png'}
+                alt={item.name}
+                width={120}
+                height={120}
+                sizes="(max-width: 640px) 30vw, 120px"
+                className="w-full sm:w-32 h-auto sm:h-32 rounded-md object-cover"
+                data-ai-hint={item.data_ai_hint}
+            />
+            <div className="flex-grow flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <p className="font-bold text-lg">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">{formatPrice(item.price_per_day)}/hari</p>
+                    </div>
+                     <Button variant="ghost" size="icon" className="h-8 w-8 -mt-1 -mr-1" onClick={() => removeItem(item.id)}>
+                        <X className="h-4 w-4" />
+                        <span className="sr-only">Hapus item</span>
+                    </Button>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-auto">
+                    <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2">
+                           <label htmlFor={`days-${item.id}`} className="text-sm font-medium">Hari:</label>
+                           <Input 
+                               type="number" 
+                               id={`days-${item.id}`} 
+                               value={item.days} 
+                               onChange={(e) => updateItemDays(item.id, parseInt(e.target.value) || 1)}
+                               className="h-9 w-20"
+                               min="1"
+                            />
+                        </div>
+                         <div className="flex items-center gap-2">
+                           <label htmlFor={`quantity-${item.id}`} className="text-sm font-medium">Jml:</label>
+                           <Input 
+                               type="number" 
+                               id={`quantity-${item.id}`} 
+                               value={item.quantity} 
+                               onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value) || 1)}
+                               className="h-9 w-20"
+                               min="1"
+                               max={item.stock}
+                            />
+                        </div>
+                    </div>
+                     <p className="font-bold text-lg sm:text-right w-full sm:w-auto mt-2 sm:mt-0">
+                        {formatPrice(item.price_per_day * item.days * item.quantity)}
+                     </p>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 
 export default function CartPage() {
-  const { cart, updateItemDays, updateItemQuantity, removeItem, total } = useCart();
+  const { cart, total } = useCart();
 
   if (cart.length === 0) {
     return (
@@ -38,138 +100,28 @@ export default function CartPage() {
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2">
-          <Card className="hidden md:block">
-            <CardContent className="p-0">
-               <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Produk</TableHead>
-                    <TableHead>Hari</TableHead>
-                    <TableHead>Jumlah</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
-                    <TableHead className="w-[50px]"></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cart.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-4">
-                          <Image
-                            src={item.images?.[0] || 'https://placehold.co/600x400.png'}
-                            alt={item.name}
-                            width={80}
-                            height={80}
-                            sizes="80px"
-                            className="rounded-md object-cover"
-                            data-ai-hint={item.data_ai_hint}
-                          />
-                          <div>
-                            <p className="font-bold">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">{formatPrice(item.price_per_day)}/hari</p>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Input 
-                          type="number" 
-                          value={item.days} 
-                          onChange={(e) => updateItemDays(item.id, parseInt(e.target.value) || 1)}
-                          className="w-16"
-                          min="1"
-                        />
-                      </TableCell>
-                       <TableCell>
-                        <Input 
-                          type="number" 
-                          value={item.quantity} 
-                          onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value) || 1)}
-                          className="w-16"
-                          min="1"
-                          max={item.stock}
-                        />
-                      </TableCell>
-                      <TableCell className="text-right font-medium">{formatPrice(item.price_per_day * item.days * item.quantity)}</TableCell>
-                      <TableCell>
-                        <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
-                          <X className="h-4 w-4" />
-                          <span className="sr-only">Hapus item</span>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+          <Card>
+            <CardContent className="p-4 sm:p-6 divide-y">
+                {cart.map((item) => (
+                    <CartItem key={item.id} item={item} />
+                ))}
             </CardContent>
           </Card>
-
-          <div className="block space-y-4 md:hidden">
-            {cart.map((item) => (
-              <Card key={item.id}>
-                <CardContent className="p-4">
-                  <div className="flex gap-4">
-                    <Image
-                      src={item.images?.[0] || 'https://placehold.co/600x400.png'}
-                      alt={item.name}
-                      width={80}
-                      height={80}
-                      sizes="80px"
-                      className="rounded-md object-cover"
-                      data-ai-hint={item.data_ai_hint}
-                    />
-                    <div className="flex-grow space-y-2">
-                      <div className="flex items-start justify-between">
-                        <p className="pr-2 font-bold">{item.name}</p>
-                        <Button variant="ghost" size="icon" className="-mt-1 -mr-1 h-7 w-7 flex-shrink-0" onClick={() => removeItem(item.id)}>
-                           <X className="h-4 w-4" />
-                           <span className="sr-only">Hapus item</span>
-                        </Button>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{formatPrice(item.price_per_day)}/hari</p>
-                      <div className="mt-2 flex items-center justify-between">
-                         <div className="flex items-center gap-4">
-                             <div className="flex items-center gap-2">
-                                <label htmlFor={`days-${item.id}`} className="text-sm">Hari:</label>
-                                <Input 
-                                    type="number" 
-                                    id={`days-${item.id}`} 
-                                    value={item.days} 
-                                    onChange={(e) => updateItemDays(item.id, parseInt(e.target.value) || 1)}
-                                    className="h-9 w-16"
-                                    min="1"
-                                 />
-                             </div>
-                             <div className="flex items-center gap-2">
-                                <label htmlFor={`quantity-${item.id}`} className="text-sm">Jml:</label>
-                                <Input 
-                                    type="number" 
-                                    id={`quantity-${item.id}`} 
-                                    value={item.quantity} 
-                                    onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value) || 1)}
-                                    className="h-9 w-16"
-                                    min="1"
-                                    max={item.stock}
-                                 />
-                             </div>
-                         </div>
-                      </div>
-                      <p className="text-right text-lg font-medium">{formatPrice(item.price_per_day * item.days * item.quantity)}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </div>
         
         <div>
-            <Card>
+            <Card className="sticky top-20">
                 <CardHeader>
                     <CardTitle className="font-headline text-2xl">Ringkasan</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-2">
-                        <div className="flex justify-between border-t pt-2 text-lg font-bold">
+                    <div className="space-y-4">
+                        <div className="flex justify-between text-lg">
+                            <span>Subtotal</span>
+                            <span>{formatPrice(total)}</span>
+                        </div>
+                         <Separator />
+                        <div className="flex justify-between text-xl font-bold">
                             <span>Total</span>
                             <span>{formatPrice(total)}</span>
                         </div>
