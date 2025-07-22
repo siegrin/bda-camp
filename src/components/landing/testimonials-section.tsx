@@ -110,7 +110,7 @@ export const TestimonialsSection = () => {
                             <Star key={i} className={`h-5 w-5 ${i < testimonial.rating ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
                           ))}
                         </div>
-                        <p className="text-muted-foreground flex-grow">"{testimonial.quote.replace('BDA.Camp', 'BDA.Camp')}"</p>
+                        <p className="text-muted-foreground flex-grow">"{testimonial.quote}"</p>
                       </CardContent>
                     </Card>
                   </div>

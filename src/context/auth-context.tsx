@@ -62,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser({
                 uid: sessionUser.id,
                 username: meta?.username || '', 
-                displayName: meta?.display_name || sessionUser.email || '',
+                displayName: meta?.display_name || meta?.full_name || sessionUser.email || '',
                 role: 'user', // Default role
                 email: sessionUser.email || null, 
                 photoURL: meta?.avatar_url || meta?.picture || null,

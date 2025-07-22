@@ -10,6 +10,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { DeleteProductDialog } from "@/components/delete-product-dialog";
 import type { Product } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export function AdminProductTableRow({ product, onEdit, onDeleted }: { product: Product, onEdit: () => void, onDeleted: () => void }) {
     const imageUrl = product.images?.[0] || 'https://placehold.co/600x400.png';
@@ -22,7 +23,10 @@ export function AdminProductTableRow({ product, onEdit, onDeleted }: { product: 
                     width={64}
                     height={64}
                     sizes="64px"
-                    className="rounded-md object-cover w-16 h-16"
+                    className={cn(
+                      "rounded-md w-16 h-16",
+                      product.object_fit === 'contain' ? 'object-contain' : 'object-cover'
+                    )}
                     data-ai-hint={product.data_ai_hint}
                 />
             </TableCell>

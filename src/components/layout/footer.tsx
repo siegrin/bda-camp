@@ -45,6 +45,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
               <li><Link href="/about" className="text-muted-foreground hover:text-primary">Cara Pesan</Link></li>
               <li><Link href="/contact" className="text-muted-foreground hover:text-primary">Hubungi Kami</Link></li>
               <li><Link href="/cart" className="text-muted-foreground hover:text-primary">Keranjang Saya</Link></li>
+              <li><Link href="/privacy-policy" className="text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
             </ul>
           </div>
           <div>

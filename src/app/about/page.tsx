@@ -2,8 +2,8 @@
 'use client';
 
 import { motion } from "framer-motion";
-import { PackageSearch, ShoppingCart, Send, Smartphone, CheckCircle, MapPin, Mail, Phone } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PackageSearch, ShoppingCart, Send, Smartphone, CheckCircle } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -18,8 +18,7 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 },
 };
 
-export default function HowToOrderPage() {
-
+const HowToOrderPage = () => {
   const steps = [
     {
       icon: PackageSearch,
@@ -101,4 +100,6 @@ export default function HowToOrderPage() {
       </motion.div>
     </div>
   );
-}
+};
+
+export default HowToOrderPage;

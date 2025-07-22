@@ -1,7 +1,16 @@
 
-# BDA.Camp - Aplikasi Penyewaan Peralatan Kemah
+<div align="center">
+  <img src="https://raw.githubusercontent.com/user-attachments/assets/51351111-939a-471a-a1e4-3c82e6d9b324" alt="BDA.Camp Logo" width="120">
+  <h1 align="center">BDA.Camp - Aplikasi Penyewaan Peralatan Kemah</h1>
+  <p align="center">
+    Sebuah aplikasi web modern yang dibangun dengan <strong>Next.js</strong>. Proyek ini berfungsi sebagai contoh penerapan praktik terbaik dalam pengembangan web, termasuk penggunaan <strong>React Server Components</strong>, <strong>Server Actions</strong>, integrasi backend dengan <strong>Supabase</strong>, dan fitur AI yang didukung oleh <strong>Google Genkit</strong>.
+  </p>
+  <p align="center">
+    <a href="https://bdacamp.vercel.app/" target="_blank"><strong>Lihat Demo Live &rarr;</strong></a>
+  </p>
+</div>
 
-Selamat datang di BDA.Camp, sebuah aplikasi web modern yang dibangun dengan Next.js. Proyek ini berfungsi sebagai contoh penerapan praktik terbaik dalam pengembangan web, termasuk penggunaan React Server Components, Server Actions, integrasi backend dengan Supabase, dan fitur AI yang didukung oleh Google Genkit.
+---
 
 ## Tumpukan Teknologi
 
@@ -15,14 +24,24 @@ Aplikasi ini dibangun menggunakan serangkaian teknologi modern untuk memastikan 
 -   **Fitur AI**: **Google Genkit** dengan model Gemini
 -   **Deployment**: **Vercel**
 
+---
+
 ## Fitur Utama
 
--   **Katalog Produk**: Menampilkan daftar peralatan kemah yang tersedia untuk disewa, lengkap dengan gambar, harga, dan ketersediaan.
+-   **Katalog Produk**: Menampilkan daftar peralatan kemah yang tersedia untuk disewa, lengkap dengan gambar, harga, stok, filter, dan fitur pencarian.
 -   **Halaman Detail Produk**: Halaman khusus untuk setiap produk dengan galeri gambar, spesifikasi teknis, dan kalender untuk pemilihan tanggal sewa.
--   **Otentikasi Pengguna**: Sistem login dan registrasi menggunakan Supabase Auth, termasuk login dengan Email/Kata Sandi dan Google.
--   **Keranjang Belanja**: Fungsionalitas keranjang untuk menampung item yang akan disewa oleh pengguna.
--   **Dashboard Admin**: Panel administratif terpisah untuk mengelola produk, kategori, pengguna, dan pengaturan situs.
--   **Chatbot AI**: Asisten virtual yang didukung Genkit untuk membantu pengguna menemukan produk dan menjawab pertanyaan.
+-   **Otentikasi Pengguna**: Sistem login dan registrasi menggunakan Supabase Auth, termasuk login dengan Email/Kata Sandi dan Google OAuth.
+-   **Manajemen Profil**: Pengguna dapat memperbarui profil mereka, termasuk nama, username, dan foto profil.
+-   **Keranjang Belanja**: Fungsionalitas keranjang untuk menampung item yang akan disewa, dengan kemampuan mengubah jumlah dan durasi sewa.
+-   **Alur Checkout**: Proses checkout yang mengarahkan pengguna ke WhatsApp admin untuk konfirmasi pesanan.
+-   **Dashboard Admin**: Panel administratif terpisah dan aman untuk:
+    -   **Manajemen Produk**: CRUD (Create, Read, Update, Delete) untuk produk.
+    -   **Manajemen Kategori & Subkategori**: Pengelolaan taksonomi produk.
+    -   **Manajemen Pengguna**: Melihat dan menghapus pengguna.
+    -   **Manajemen Penyewaan**: Melacak dan mengubah status pesanan (pending, active, completed).
+    -   **Log Aktivitas & Backup**: Memantau aktivitas sistem dan membuat backup data.
+-   **Chatbot AI**: Asisten virtual yang didukung Genkit untuk membantu pengguna menemukan produk dan menjawab pertanyaan secara dinamis.
+-   **Pembaruan Real-time**: Dasbor admin menggunakan Supabase Realtime untuk memperbarui data secara langsung tanpa perlu me-refresh halaman.
 
 ---
 
@@ -33,7 +52,7 @@ Ikuti langkah-langkah ini untuk menjalankan proyek di lingkungan pengembangan lo
 ### Prasyarat
 
 -   Node.js (v18 atau lebih baru)
--   npm, pnpm, atau yarn
+-   pnpm (dianjurkan), npm, atau yarn
 -   Akun Supabase (untuk database dan otentikasi)
 -   Akun Google Cloud (untuk API Key Gemini)
 
@@ -48,15 +67,15 @@ cd NAMA_REPOSITORI
 
 ### 2. Instal Dependensi
 
-Instal semua paket yang diperlukan:
+Instal semua paket yang diperlukan (disarankan menggunakan `pnpm`):
 
 ```bash
-npm install
+pnpm install
 ```
 
 ### 3. Konfigurasi Environment Variables
 
-Ini adalah langkah paling penting. Buat file baru bernama `.env.local` di root proyek Anda dan salin konten dari `.env.example` (jika ada) atau isi dengan variabel berikut:
+Ini adalah langkah paling penting. Buat file baru bernama `.env.local` di root proyek Anda dan isi dengan variabel berikut:
 
 ```env
 # Variabel Supabase (Wajib)
@@ -72,12 +91,17 @@ GEMINI_API_KEY="API_KEY_GEMINI_ANDA"
 
 **Peringatan:** Jangan pernah membagikan atau mengunggah file `.env.local` Anda ke GitHub. File `.gitignore` sudah dikonfigurasi untuk mengabaikannya.
 
-### 4. Jalankan Server Pengembangan
+### 4. Setup Database Supabase
+
+Proyek ini memerlukan skema database tertentu. Buka **SQL Editor** di dasbor Supabase Anda dan jalankan skrip SQL dari tautan berikut untuk membuat semua tabel dan fungsi yang diperlukan:
+[**Buka Skrip SQL Setup**](https://github.com/mhmdfauzi/bda-camp/blob/main/supabase_setup.sql)
+
+### 5. Jalankan Server Pengembangan
 
 Setelah konfigurasi selesai, jalankan aplikasi:
 
 ```bash
-npm run dev
+pnpm run dev
 ```
 
 Buka [http://localhost:3000](http://localhost:3000) di browser Anda untuk melihat hasilnya.

@@ -1,5 +1,4 @@
 
-
 export type Category = {
   id: number;
   name: string;
@@ -46,7 +45,7 @@ export interface MockUser {
   username: string;
   displayName: string;
   email: string | null;
-  photoURL?: string | null;
+  photoURL: string | null;
   role: UserRole;
 }
 
