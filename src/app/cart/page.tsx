@@ -12,7 +12,7 @@ import { useCart } from "@/context/cart-context";
 import { formatPrice } from "@/lib/utils";
 
 export default function CartPage() {
-  const { cart, updateItemDays, removeItem, total } = useCart();
+  const { cart, updateItemDays, updateItemQuantity, removeItem, total } = useCart();
 
   if (cart.length === 0) {
     return (
@@ -43,8 +43,9 @@ export default function CartPage() {
                <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[50%]">Produk</TableHead>
+                    <TableHead className="w-[40%]">Produk</TableHead>
                     <TableHead>Hari</TableHead>
+                    <TableHead>Jumlah</TableHead>
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead className="w-[50px]"></TableHead>
                   </TableRow>
@@ -74,11 +75,21 @@ export default function CartPage() {
                           type="number" 
                           value={item.days} 
                           onChange={(e) => updateItemDays(item.id, parseInt(e.target.value) || 1)}
-                          className="w-20"
+                          className="w-16"
                           min="1"
                         />
                       </TableCell>
-                      <TableCell className="text-right font-medium">{formatPrice(item.price_per_day * item.days)}</TableCell>
+                       <TableCell>
+                        <Input 
+                          type="number" 
+                          value={item.quantity} 
+                          onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value) || 1)}
+                          className="w-16"
+                          min="1"
+                          max={item.stock}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right font-medium">{formatPrice(item.price_per_day * item.days * item.quantity)}</TableCell>
                       <TableCell>
                         <Button variant="ghost" size="icon" onClick={() => removeItem(item.id)}>
                           <X className="h-4 w-4" />
@@ -116,19 +127,33 @@ export default function CartPage() {
                       </div>
                       <p className="text-sm text-muted-foreground">{formatPrice(item.price_per_day)}/hari</p>
                       <div className="mt-2 flex items-center justify-between">
-                         <div className="flex items-center gap-2">
-                            <label htmlFor={`days-${item.id}`} className="text-sm">Hari:</label>
-                            <Input 
-                                type="number" 
-                                id={`days-${item.id}`} 
-                                value={item.days} 
-                                onChange={(e) => updateItemDays(item.id, parseInt(e.target.value) || 1)}
-                                className="h-9 w-16"
-                                min="1"
-                             />
+                         <div className="flex items-center gap-4">
+                             <div className="flex items-center gap-2">
+                                <label htmlFor={`days-${item.id}`} className="text-sm">Hari:</label>
+                                <Input 
+                                    type="number" 
+                                    id={`days-${item.id}`} 
+                                    value={item.days} 
+                                    onChange={(e) => updateItemDays(item.id, parseInt(e.target.value) || 1)}
+                                    className="h-9 w-16"
+                                    min="1"
+                                 />
+                             </div>
+                             <div className="flex items-center gap-2">
+                                <label htmlFor={`quantity-${item.id}`} className="text-sm">Jml:</label>
+                                <Input 
+                                    type="number" 
+                                    id={`quantity-${item.id}`} 
+                                    value={item.quantity} 
+                                    onChange={(e) => updateItemQuantity(item.id, parseInt(e.target.value) || 1)}
+                                    className="h-9 w-16"
+                                    min="1"
+                                    max={item.stock}
+                                 />
+                             </div>
                          </div>
-                         <p className="text-lg font-medium">{formatPrice(item.price_per_day * item.days)}</p>
                       </div>
+                      <p className="text-right text-lg font-medium">{formatPrice(item.price_per_day * item.days * item.quantity)}</p>
                     </div>
                   </div>
                 </CardContent>

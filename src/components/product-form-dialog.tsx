@@ -184,9 +184,15 @@ function ProductForm({ product, onFinished }: { product?: Product | null, onFini
                         <Label htmlFor="name">Nama Produk</Label>
                         <Input id="name" name="name" defaultValue={product?.name} required ref={nameRef} />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="price_per_day">Harga/Hari (IDR)</Label>
-                        <Input id="price_per_day" name="price_per_day" type="number" defaultValue={product?.price_per_day} required/>
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-2">
+                            <Label htmlFor="price_per_day">Harga/Hari</Label>
+                            <Input id="price_per_day" name="price_per_day" type="number" defaultValue={product?.price_per_day} required/>
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="stock">Stok</Label>
+                            <Input id="stock" name="stock" type="number" defaultValue={product?.stock || 0} required/>
+                        </div>
                     </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -64,7 +64,7 @@ export function ProductGallery({ images, productName, dataAiHint, objectFit }: P
               )}
               data-ai-hint={dataAiHint}
               priority
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 45vw"
             />
           </div>
         </CardContent>
@@ -91,7 +91,7 @@ export function ProductGallery({ images, productName, dataAiHint, objectFit }: P
                       )}
                       data-ai-hint={dataAiHint}
                       priority={index === 0}
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 45vw"
                     />
                   </div>
                 </CardContent>

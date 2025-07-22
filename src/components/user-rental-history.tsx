@@ -35,13 +35,21 @@ export function UserRentalHistory() {
     loadRentals();
   }, []);
 
-  const handleReorder = async (productId: number, days: number) => {
+  const handleReorder = async (productId: number, days: number, quantity: number) => {
     const product = await getProductById(productId);
     if (product) {
-      addItem(product, days);
+      if (quantity > product.stock) {
+        toast({
+          variant: 'destructive',
+          title: 'Stok Tidak Cukup',
+          description: `Saat ini stok untuk ${product.name} tidak mencukupi untuk memesan ulang.`,
+        });
+        return;
+      }
+      addItem(product, days, quantity);
       toast({
         title: "Berhasil Ditambahkan!",
-        description: `${product.name} telah ditambahkan kembali ke keranjang Anda.`,
+        description: `${quantity}x ${product.name} telah ditambahkan kembali ke keranjang Anda.`,
       });
     } else {
       toast({
@@ -137,13 +145,13 @@ export function UserRentalHistory() {
                             <li key={item.id} className="flex items-center justify-between gap-4">
                                <div className="flex items-center gap-4">
                                  <div>
-                                    <p className="font-semibold">{item.name}</p>
+                                    <p className="font-semibold">{item.name} <span className="text-muted-foreground">x{item.quantity}</span></p>
                                     <p className="text-sm text-muted-foreground">{item.days} hari &times; {formatPrice(item.price_per_day)}</p>
                                  </div>
                                </div>
                                <div className="flex flex-col items-end gap-2">
-                                  <p className="font-medium">{formatPrice(item.price_per_day * item.days)}</p>
-                                   <Button size="sm" variant="outline" onClick={() => handleReorder(item.id, item.days)}>
+                                  <p className="font-medium">{formatPrice(item.price_per_day * item.days * item.quantity)}</p>
+                                   <Button size="sm" variant="outline" onClick={() => handleReorder(item.id, item.days, item.quantity)}>
                                         <RotateCcw className="mr-2 h-4 w-4" />
                                         Pesan Lagi
                                     </Button>

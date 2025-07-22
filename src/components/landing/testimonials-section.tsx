@@ -100,7 +100,7 @@ export const TestimonialsSection = () => {
                       <CardContent className="flex flex-col items-center p-6 text-center h-full">
                         <Avatar className="h-20 w-20">
                           <AvatarImage asChild src={testimonial.avatar}>
-                            <Image src={testimonial.avatar} alt={testimonial.name} width={80} height={80} data-ai-hint={testimonial.dataAiHint} />
+                            <Image src={testimonial.avatar} alt={testimonial.name} width={80} height={80} sizes="80px" data-ai-hint={testimonial.dataAiHint} />
                           </AvatarImage>
                           <AvatarFallback>{testimonial.name.charAt(0)}</AvatarFallback>
                         </Avatar>
@@ -110,7 +110,7 @@ export const TestimonialsSection = () => {
                             <Star key={i} className={`h-5 w-5 ${i < testimonial.rating ? 'text-primary fill-primary' : 'text-muted-foreground'}`} />
                           ))}
                         </div>
-                        <p className="text-muted-foreground flex-grow">"{testimonial.quote.replace('Base Camp Rentals', 'BDA.Camp')}"</p>
+                        <p className="text-muted-foreground flex-grow">"{testimonial.quote.replace('BDA.Camp', 'BDA.Camp')}"</p>
                       </CardContent>
                     </Card>
                   </div>
@@ -123,5 +123,3 @@ export const TestimonialsSection = () => {
     </motion.section>
   );
 };
-
-    

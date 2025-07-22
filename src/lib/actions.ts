@@ -204,6 +204,7 @@ async function logActivity(action: string, details: string, user?: MockUser | nu
 const ProductSchema = z.object({
     name: z.string().min(3, { message: 'Nama produk harus lebih dari 3 karakter.' }),
     price_per_day: z.coerce.number().positive({ message: 'Harga harus angka positif.' }),
+    stock: z.coerce.number().min(0, { message: 'Stok tidak boleh negatif.' }),
     category_id: z.coerce.number().positive({ message: 'Kategori harus dipilih.' }),
     subcategory_id: z.coerce.number().positive({ message: 'Subkategori harus diisi.' }),
     description: z.string().min(10, { message: 'Deskripsi harus lebih dari 10 karakter.' }),
@@ -361,7 +362,7 @@ export const logRentalCheckout = userAction(async (user, cart: CartItem[]) => {
     }
 
     const supabase = createClientForActions();
-    const total = cart.reduce((acc, item) => acc + item.price_per_day * item.days, 0);
+    const total = cart.reduce((acc, item) => acc + item.price_per_day * item.days * item.quantity, 0);
 
     const newRental: Omit<Rental, 'id' | 'checkout_date'> = {
         user_id: user.uid,
@@ -370,7 +371,8 @@ export const logRentalCheckout = userAction(async (user, cart: CartItem[]) => {
             id: item.id,
             name: item.name,
             days: item.days,
-            price_per_day: item.price_per_day
+            price_per_day: item.price_per_day,
+            quantity: item.quantity,
         })),
         total,
         status: 'pending',

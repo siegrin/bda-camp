@@ -143,3 +143,18 @@ export async function getRentals(): Promise<Rental[]> {
     const { data } = await supabase.from('rentals').select('*').order('checkout_date', { ascending: false });
     return data || [];
 }
+
+export async function getPendingRentalsCount(): Promise<number> {
+    const supabase = createClientForServer();
+    const { count, error } = await supabase
+        .from('rentals')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+    
+    if (error) {
+        console.error('Error fetching pending rentals count:', error);
+        return 0;
+    }
+    
+    return count || 0;
+}

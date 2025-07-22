@@ -62,12 +62,17 @@ export default async function ProductDetailPage({ params }: { params: { id: stri
           
           <div className="flex flex-col">
             <div>
-              <Badge 
-                variant={product.availability === 'Tersedia' ? 'primary' : 'destructive'}
-                className="mb-2 w-fit"
-              >
-                {product.availability}
-              </Badge>
+              <div className="flex items-center gap-2 mb-2">
+                  <Badge 
+                    variant={product.availability === 'Tersedia' ? 'default' : 'destructive'}
+                    className="w-fit"
+                  >
+                    {product.availability}
+                  </Badge>
+                   {product.stock < 5 && product.availability === 'Tersedia' && (
+                     <Badge variant="secondary" className="w-fit">Stok tersisa: {product.stock}</Badge>
+                  )}
+              </div>
               <h1 className="font-headline text-3xl font-bold tracking-tight md:text-4xl">{product.name}</h1>
               <p className="mt-2 text-2xl font-bold text-primary">
                 {formatPrice(product.price_per_day)} <span className="text-base font-normal text-muted-foreground">/ hari</span>

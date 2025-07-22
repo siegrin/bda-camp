@@ -25,6 +25,7 @@ export type Product = {
   description: string;
   specs: { [key: string]: string };
   availability: 'Tersedia' | 'Tidak Tersedia';
+  stock: number;
   object_fit?: 'cover' | 'contain';
   categories?: { name: string } | null; // For Supabase join
   subcategories?: { name: string } | null; // For Supabase join
@@ -93,6 +94,7 @@ export interface Rental {
         name: string;
         days: number;
         price_per_day: number;
+        quantity: number;
     }[];
     total: number;
     status: RentalStatus;
@@ -101,6 +103,7 @@ export interface Rental {
 
 export interface CartItem extends Product {
   days: number;
+  quantity: number;
 }
 
 export interface ReportData {

@@ -1,6 +1,4 @@
 
-'use server';
-
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,7 +9,7 @@ import { subscribeToNewsletter } from '@/lib/actions';
 import { NewsletterForm } from './newsletter-form';
 
 
-export async function Footer({ settings }: { settings: SiteSettings }) {
+export function Footer({ settings }: { settings: SiteSettings }) {
   const social = settings.social || { twitter: '#', facebook: '#', instagram: '#' };
 
   return (

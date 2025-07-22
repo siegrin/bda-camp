@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/cart-context";
-import { getSettings, logRentalCheckout } from "@/lib/actions";
+import { logRentalCheckout } from "@/lib/actions";
 import { formatPrice } from "@/lib/utils";
 import type { SiteSettings, CartItem } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,7 @@ import { LoadingScreen } from "@/components/loading-screen";
 const generateWhatsAppMessage = (cart: CartItem[], total: number) => {
     let message = "Halo, saya ingin menyewa peralatan berikut:\n\n";
     cart.forEach(item => {
-        message += `- ${item.name} (${item.days} hari)\n`;
+        message += `- ${item.name} (${item.quantity} unit, ${item.days} hari)\n`;
     });
     message += `\n*Total: ${formatPrice(total)}*\n\n`;
     message += "Mohon konfirmasi ketersediaan dan instruksi pembayaran selanjutnya. Terima kasih!";
@@ -24,80 +24,51 @@ const generateWhatsAppMessage = (cart: CartItem[], total: number) => {
 };
 
 
-export default function CheckoutPage() {
+export default function CheckoutPage({ settings }: { settings: SiteSettings | null }) {
     const { cart, total, clearCart } = useCart();
     const router = useRouter();
-    const [settings, setSettings] = useState<SiteSettings | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
-        // Redirect to cart page if the cart is empty on mount.
-        // The check is simple and doesn't need to depend on `cart` array directly,
-        // which could cause re-renders. We only care about the initial state.
         if (cart.length === 0) {
             router.replace('/cart');
         }
     }, [cart.length, router]);
     
-
-    useEffect(() => {
-        async function loadSettings() {
-            try {
-                const loadedSettings = await getSettings();
-                setSettings(loadedSettings);
-            } catch (error) {
-                console.error("Failed to load settings:", error);
-            } finally {
-                setIsLoading(false);
-            }
-        }
-        
-        loadSettings();
-    }, []);
     
     const handleCheckout = async () => {
         if (!settings?.whatsapp_number) {
             alert("Nomor WhatsApp admin belum diatur.");
             return;
         }
+        setIsLoading(true);
 
-        // Log the rental to create a pending order
         const result = await logRentalCheckout(cart);
 
         if (!result.success) {
             alert("Gagal membuat pesanan. Silakan coba lagi.");
+             setIsLoading(false);
             return;
         }
 
         const message = generateWhatsAppMessage(cart, total);
         const whatsappUrl = `https://wa.me/${settings.whatsapp_number}?text=${message}`;
-        window.open(whatsappUrl, '_blank');
         
-        // Clear cart after initiating checkout
         clearCart();
         
-        // Redirect to a confirmation or profile page after a delay
-        setTimeout(() => {
-            router.push('/profile');
-        }, 1500);
+        router.push('/profile');
+        window.open(whatsappUrl, '_blank');
+        
+        // No need to set isLoading to false as the page is navigating away
     };
-
-    if (isLoading) {
-        return <LoadingScreen />;
-    }
     
-    // If cart becomes empty after initial load (e.g., user removes last item in another tab)
-    // or if the page was accessed directly with an empty cart.
     if (cart.length === 0) {
-        // You can show a message or just let the useEffect redirect handle it.
-        // Showing a loader-like state prevents a flash of content before redirect.
          return (
             <div className="container mx-auto flex min-h-[60vh] items-center justify-center">
                 <p>Keranjang kosong, mengarahkan kembali...</p>
             </div>
         );
     }
-
 
     if (!settings?.whatsapp_number) {
          return (
@@ -134,7 +105,8 @@ export default function CheckoutPage() {
           </p>
           <p className="mt-4 font-bold text-lg">Total Pembayaran: {formatPrice(total)}</p>
           
-           <Button size="lg" className="mt-6 w-full" onClick={handleCheckout}>
+           <Button size="lg" className="mt-6 w-full" onClick={handleCheckout} disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 Lanjutkan ke WhatsApp
            </Button>
         </CardContent>

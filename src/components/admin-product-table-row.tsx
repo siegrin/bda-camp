@@ -38,6 +38,7 @@ export function AdminProductTableRow({ product, onEdit, onDeleted }: { product: 
                 <Badge variant={product.availability === 'Tersedia' ? 'default' : 'destructive'}>
                     {product.availability}
                 </Badge>
+                <p className="text-xs text-muted-foreground">Stok: {product.stock}</p>
             </TableCell>
             <TableCell className="text-right">
                 <Button variant="ghost" size="icon" onClick={onEdit}>

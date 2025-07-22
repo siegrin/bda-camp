@@ -11,9 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Eye, EyeOff, User as UserIcon, Lock, Mail, CheckCircle, XCircle, Loader2 } from "lucide-react";
-import { Logo } from "@/components/logo";
-import { getSettings, registerUser } from "@/lib/actions";
-import type { SiteSettings } from "@/lib/types";
+import { registerUser } from "@/lib/actions";
 import { createClient } from "@/lib/supabase/client";
 import { useDebounce } from "use-debounce";
 import { LoadingScreen } from "@/components/loading-screen";
@@ -71,7 +69,6 @@ export default function RegisterPage() {
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
 
   // UI State
   const [isLoading, setIsLoading] = useState(false);
@@ -148,11 +145,6 @@ export default function RegisterPage() {
   }, [password, confirmPassword]);
 
   // --- Initial Setup ---
-
-  useEffect(() => {
-    getSettings().then(setSettings);
-  }, []);
-
   useEffect(() => {
     if (user) {
       router.push("/profile");
@@ -196,7 +188,7 @@ export default function RegisterPage() {
     setIsLoading(false);
   };
 
-  if (authLoading || user || !settings) {
+  if (authLoading || user) {
     return <LoadingScreen message="Mengarahkan..." />;
   }
 
@@ -206,10 +198,6 @@ export default function RegisterPage() {
        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
       <Card className="w-full max-w-sm z-10 bg-card/80 border-border/50">
          <CardHeader className="text-center">
-            <Link href="/" className="flex justify-center items-center space-x-2 mb-4">
-                <Logo className="h-10 w-10 text-primary" logoUrl={settings.logo_url} />
-                <span className="font-bold font-headline text-xl">BDA.Camp</span>
-            </Link>
             <CardTitle className="font-headline text-2xl">Buat Akun Baru</CardTitle>
             <CardDescription>
                 Isi formulir di bawah untuk memulai petualangan Anda.

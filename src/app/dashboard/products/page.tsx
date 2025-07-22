@@ -113,7 +113,7 @@ export default function ProductsPage() {
                         <TableHead>Nama</TableHead>
                         <TableHead className="hidden sm:table-cell">Kategori</TableHead>
                         <TableHead className="hidden lg:table-cell">Harga/Hari</TableHead>
-                        <TableHead className="hidden sm:table-cell">Ketersediaan</TableHead>
+                        <TableHead className="hidden sm:table-cell">Status</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>

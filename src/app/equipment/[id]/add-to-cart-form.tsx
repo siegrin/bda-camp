@@ -12,6 +12,9 @@ import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import type { Product } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
 
 export function AddToCartForm({ product }: { product: Product }) {
   const { toast } = useToast();
@@ -21,6 +24,7 @@ export function AddToCartForm({ product }: { product: Product }) {
   const pathname = usePathname();
   
   const [date, setDate] = useState<DateRange | undefined>(undefined);
+  const [quantity, setQuantity] = useState(1);
   const [disabledDays, setDisabledDays] = useState<{ before: Date } | undefined>(undefined);
   const [isClient, setIsClient] = useState(false);
 
@@ -47,12 +51,21 @@ export function AddToCartForm({ product }: { product: Product }) {
     }
     
     if (product && date?.from && date?.to) {
+        if (quantity > product.stock) {
+            toast({
+                variant: "destructive",
+                title: "Stok Tidak Cukup",
+                description: `Hanya tersedia ${product.stock} unit untuk ${product.name}.`,
+            });
+            return;
+        }
+
         const dayDifference = (date.to.getTime() - date.from.getTime()) / (1000 * 60 * 60 * 24);
         const days = Math.round(dayDifference) + 1;
-        addItem(product, days);
+        addItem(product, days, quantity);
         toast({
             title: "Berhasil Ditambahkan!",
-            description: `${product.name} telah ditambahkan ke keranjang Anda.`,
+            description: `${quantity}x ${product.name} telah ditambahkan ke keranjang Anda.`,
         });
     } else {
         toast({
@@ -90,7 +103,25 @@ export function AddToCartForm({ product }: { product: Product }) {
           <Skeleton className="h-[310px] w-full" />
         )}
       </div>
-      <Button size="lg" className="w-full mt-4" disabled={!date || product.availability === 'Tidak Tersedia'} onClick={handleAddToCart}>
+      <Separator className="my-4" />
+       <div className="space-y-2 text-center">
+        <Label htmlFor="quantity" className="font-headline text-xl">Jumlah</Label>
+        <div className="flex justify-center items-center gap-2">
+            <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.max(1, q - 1))} disabled={quantity <= 1}>-</Button>
+            <Input 
+                id="quantity" 
+                type="number" 
+                value={quantity}
+                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                className="w-20 text-center text-lg font-bold"
+                min="1"
+                max={product.stock}
+            />
+            <Button variant="outline" size="icon" onClick={() => setQuantity(q => Math.min(product.stock, q + 1))}  disabled={quantity >= product.stock}>+</Button>
+        </div>
+        <p className="text-sm text-muted-foreground">Stok tersedia: {product.stock}</p>
+      </div>
+      <Button size="lg" className="w-full mt-4" disabled={!date || product.availability === 'Tidak Tersedia' || product.stock < 1} onClick={handleAddToCart}>
         Tambah ke Keranjang
       </Button>
     </>

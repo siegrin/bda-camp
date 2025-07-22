@@ -38,12 +38,17 @@ export function ProductCard({ product, onActionComplete }: ProductCardProps) {
         <CardHeader className="p-0">
           <div className="relative">
             <Link href={`/equipment/${product.id}`}>
-              <Badge
-                className="absolute top-2 right-2 z-10"
-                variant={product.availability === 'Tersedia' ? 'default' : 'destructive'}
-              >
-                {product.availability}
-              </Badge>
+              <div className="absolute top-2 right-2 z-10 space-y-1 text-right">
+                 <Badge
+                    variant={product.availability === 'Tersedia' ? 'default' : 'destructive'}
+                    className="w-fit"
+                  >
+                    {product.availability}
+                  </Badge>
+                   {product.stock < 5 && product.availability === 'Tersedia' && (
+                     <Badge variant="secondary" className="w-fit">Stok: {product.stock}</Badge>
+                  )}
+              </div>
               <Image
                 src={imageUrl}
                 alt={product.name}

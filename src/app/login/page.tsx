@@ -11,10 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Eye, EyeOff, Lock, Mail, Chrome, Loader2 } from "lucide-react";
-import { Logo } from "@/components/logo";
-import { getSettings } from "@/lib/actions";
-import type { SiteSettings } from "@/lib/types";
 import { LoadingScreen } from "@/components/loading-screen";
+import type { SiteSettings } from "@/lib/types";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -29,12 +27,14 @@ export default function LoginPage() {
   const redirectUrl = searchParams.get('redirect');
 
   useEffect(() => {
-    getSettings().then(setSettings);
+    // This is a client component, so we can't use the server-side getSettings.
+    // We'll just hide the logo part or show a placeholder if settings are not loaded.
+    // For this case, since the logo is removed, we don't need to fetch settings anymore.
   }, []);
 
   useEffect(() => {
     if (!authLoading && user) {
-      const targetUrl = redirectUrl || (user.role === 'admin' ? "/dashboard" : "/profile");
+      const targetUrl = redirectUrl || (user.role === 'admin' ? "/dashboard" : "/equipment");
       router.replace(targetUrl);
     }
   }, [user, authLoading, router, redirectUrl]);
@@ -74,7 +74,7 @@ export default function LoginPage() {
   }
 
 
-  if (authLoading || user || !settings) {
+  if (authLoading || user) {
     return <LoadingScreen message="Mengarahkan..." />;
   }
 
@@ -84,10 +84,6 @@ export default function LoginPage() {
        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" />
       <Card className="w-full max-w-sm z-10 bg-card/80 border-border/50">
          <CardHeader className="text-center">
-          <Link href="/" className="flex justify-center items-center space-x-2 mb-4">
-              <Logo className="h-10 w-10 text-primary" logoUrl={settings.logo_url} />
-              <span className="font-bold font-headline text-xl">BDA.Camp</span>
-          </Link>
           <CardTitle className="font-headline text-2xl">Login Akun</CardTitle>
           <CardDescription>
             Masukkan email dan kata sandi Anda.

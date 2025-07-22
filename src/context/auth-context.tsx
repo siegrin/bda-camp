@@ -145,13 +145,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 
   const signOut = async () => {
-    const isDashboard = pathname.startsWith('/dashboard');
     await signOutUser();
     setUser(null);
-    if(isDashboard){
-      router.push('/');
-    }
-    router.refresh(); // Force a refresh to clear server component cache
+    // Force a full page reload to the homepage to ensure all server/client states are cleared.
+    // This is more robust for Vercel deployment.
+    window.location.href = '/';
   };
 
   const updateUserClient = (updatedUser: MockUser) => {

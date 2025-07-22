@@ -39,10 +39,14 @@ import { Logo } from "@/components/logo";
 import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { getSettings } from "@/lib/actions";
+import { getPendingRentalsCount } from '@/lib/products';
 import type { SiteSettings } from "@/lib/types";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { LoadingScreen } from "@/components/loading-screen";
+import { Badge } from "@/components/ui/badge";
+import { createClient } from '@/lib/supabase/client';
+
 
 export default function DashboardLayout({
   children,
@@ -54,10 +58,31 @@ export default function DashboardLayout({
   const router = useRouter();
   const [isSheetOpen, setSheetOpen] = useState(false);
   const [settings, setSettings] = useState<SiteSettings | null>(null);
+  const [pendingRentalsCount, setPendingRentalsCount] = useState(0);
+  const supabase = createClient();
+
 
   useEffect(() => {
     getSettings().then(setSettings);
   }, []);
+  
+  const loadPendingCount = async () => {
+    const count = await getPendingRentalsCount();
+    setPendingRentalsCount(count);
+  }
+
+  useEffect(() => {
+    loadPendingCount();
+
+    const channel = supabase.channel('rentals-count-changes')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'rentals' }, loadPendingCount)
+        .subscribe();
+        
+    return () => {
+        supabase.removeChannel(channel);
+    }
+  }, [supabase]);
+
 
   useEffect(() => {
     if (!loading && (!user || user.role !== 'admin')) {
@@ -71,7 +96,7 @@ export default function DashboardLayout({
 
   const navItems = [
     { href: "/dashboard", icon: LineChart, label: "Overview", exact: true },
-    { href: "/dashboard/rentals", icon: ListOrdered, label: "Penyewaan" },
+    { href: "/dashboard/rentals", icon: ListOrdered, label: "Penyewaan", notificationCount: pendingRentalsCount },
     { href: "/dashboard/products", icon: Package, label: "Produk" },
     { href: "/dashboard/categories", icon: Shapes, label: "Kategori" },
     { href: "/dashboard/subcategories", icon: Layers3, label: "Subkategori" },
@@ -109,12 +134,17 @@ export default function DashboardLayout({
                   <Link
                     href={item.href}
                     className={cn(
-                      "flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8", 
+                      "flex h-9 w-9 items-center justify-center rounded-lg transition-colors md:h-8 md:w-8 relative", 
                       getActiveLinkClass(item.href, item.exact)
                     )}
                   >
                     <item.icon className="h-5 w-5" />
                     <span className="sr-only">{item.label}</span>
+                     {item.notificationCount && item.notificationCount > 0 && (
+                        <Badge variant="destructive" className="absolute -top-2 -right-2 h-5 w-5 justify-center rounded-full p-0">
+                            {item.notificationCount}
+                        </Badge>
+                     )}
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent side="right">{item.label}</TooltipContent>
@@ -165,11 +195,18 @@ export default function DashboardLayout({
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={cn("-ml-2 flex items-center gap-4 rounded-md px-4 py-2", getActiveMobileLinkClass(item.href, item.exact))}
+                    className={cn("-ml-2 flex items-center justify-between gap-4 rounded-md px-4 py-2", getActiveMobileLinkClass(item.href, item.exact))}
                     onClick={() => setSheetOpen(false)}
                   >
-                    <item.icon className="h-5 w-5" />
-                    {item.label}
+                    <div className="flex items-center gap-4">
+                        <item.icon className="h-5 w-5" />
+                        {item.label}
+                    </div>
+                     {item.notificationCount && item.notificationCount > 0 && (
+                        <Badge variant="destructive" className="h-6 w-6 justify-center rounded-full p-0">
+                            {item.notificationCount}
+                        </Badge>
+                     )}
                   </Link>
                 ))}
                  <Link

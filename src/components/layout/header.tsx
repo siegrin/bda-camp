@@ -3,7 +3,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from "@/components/ui/sheet";
@@ -16,6 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import type { SiteSettings } from "@/lib/types";
+import { cn } from "@/lib/utils";
 
 export function Header({ settings }: { settings: SiteSettings }) {
   const [isSheetOpen, setSheetOpen] = useState(false);
@@ -23,6 +24,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
   const { cart } = useCart();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || "");
 
   useEffect(() => {
@@ -48,6 +50,15 @@ export function Header({ settings }: { settings: SiteSettings }) {
   ];
 
   const closeSheet = () => setSheetOpen(false);
+  
+  const getLinkClass = (href: string) => {
+    const isActive = (href === "/" && pathname === href) || (href !== "/" && pathname.startsWith(href));
+    return cn(
+      "transition-colors hover:text-primary",
+      isActive && "text-primary font-bold"
+    );
+  };
+
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -91,7 +102,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
                     <Link
                     key={link.href}
                     href={link.href}
-                    className="hover:text-primary"
+                    className={getLinkClass(link.href)}
                     onClick={closeSheet}
                   >
                     {link.label}
@@ -120,7 +131,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
             <Link
               key={link.href}
               href={link.href}
-              className="transition-colors hover:text-primary"
+              className={getLinkClass(link.href)}
             >
               {link.label}
             </Link>

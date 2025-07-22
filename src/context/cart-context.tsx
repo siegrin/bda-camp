@@ -8,13 +8,15 @@ import { useAuth } from './auth-context';
 
 export interface CartItem extends Product {
   days: number;
+  quantity: number;
 }
 
 interface CartContextType {
   cart: CartItem[];
-  addItem: (product: Product, days: number) => void;
+  addItem: (product: Product, days: number, quantity: number) => void;
   removeItem: (productId: number) => void;
   updateItemDays: (productId: number, days: number) => void;
+  updateItemQuantity: (productId: number, quantity: number) => void;
   clearCart: () => void;
   itemCount: number;
   total: number;
@@ -57,7 +59,7 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     }
   }, [cart, getCartKey, loading]);
 
-  const addItem = (product: Product, days: number) => {
+  const addItem = (product: Product, days: number, quantity: number) => {
     if (!user) {
         toast({
             title: "Harap Login",
@@ -70,13 +72,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     setCart((prevCart) => {
       const existingItem = prevCart.find((item) => item.id === product.id);
       if (existingItem) {
-        toast({
-            title: "Produk Sudah Ada di Keranjang",
-            description: `Anda sudah menambahkan ${product.name} sebelumnya.`,
-        });
-        return prevCart;
+        // If item exists, just update its quantity
+        return prevCart.map(item => 
+          item.id === product.id 
+            ? { ...item, quantity: item.quantity + quantity }
+            : item
+        );
       }
-      return [...prevCart, { ...product, days }];
+      // If item doesn't exist, add it
+      return [...prevCart, { ...product, days, quantity }];
     });
   };
 
@@ -92,19 +96,29 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       )
     );
   };
+  
+  const updateItemQuantity = (productId: number, quantity: number) => {
+    if (quantity < 1) return;
+    setCart((prevCart) =>
+      prevCart.map((item) =>
+        item.id === productId ? { ...item, quantity } : item
+      )
+    );
+  };
 
   const clearCart = () => {
     setCart([]);
   };
 
-  const itemCount = cart.length;
-  const total = cart.reduce((acc, item) => acc + item.price_per_day * item.days, 0);
+  const itemCount = cart.reduce((total, item) => total + item.quantity, 0);
+  const total = cart.reduce((acc, item) => acc + item.price_per_day * item.days * item.quantity, 0);
 
   const value = {
     cart,
     addItem,
     removeItem,
     updateItemDays,
+    updateItemQuantity,
     clearCart,
     itemCount,
     total,

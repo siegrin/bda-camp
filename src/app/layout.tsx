@@ -2,7 +2,6 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
 import { MainLayout } from "@/components/layout/main-layout";
-import { Footer } from "@/components/layout/footer";
 import { getSettings } from "@/lib/actions";
 import type { SiteSettings } from "@/lib/types";
 import { Providers } from "@/context/providers";
@@ -67,7 +66,6 @@ export default async function RootLayout({
           <MainLayout settings={settings}>
             {children}
           </MainLayout>
-          <Footer settings={settings} />
           <Toaster />
         </Providers>
       </body>
