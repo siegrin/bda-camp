@@ -5,6 +5,7 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { getSettings } from "@/lib/actions";
 import type { SiteSettings } from "@/lib/types";
 import { Providers } from "@/context/providers";
+import Script from 'next/script';
 import "./globals.css";
 
 // Use generateMetadata to dynamically set page metadata, including the favicon
@@ -72,6 +73,12 @@ export default async function RootLayout({
           </MainLayout>
           <Toaster />
         </Providers>
+        <Script 
+          src="https://fpyf8.com/88/tag.min.js" 
+          data-zone="158668" 
+          data-cfasync="false" 
+          strategy="lazyOnload" 
+        />
       </body>
     </html>
   );
