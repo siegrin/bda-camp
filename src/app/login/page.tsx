@@ -12,7 +12,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Eye, EyeOff, Lock, Mail, Chrome, Loader2 } from "lucide-react";
 import { LoadingScreen } from "@/components/loading-screen";
-import type { SiteSettings } from "@/lib/types";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -23,18 +22,12 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [settings, setSettings] = useState<SiteSettings | null>(null);
   const redirectUrl = searchParams.get('redirect');
 
-  useEffect(() => {
-    // This is a client component, so we can't use the server-side getSettings.
-    // We'll just hide the logo part or show a placeholder if settings are not loaded.
-    // For this case, since the logo is removed, we don't need to fetch settings anymore.
-  }, []);
 
   useEffect(() => {
     if (!authLoading && user) {
-      const targetUrl = redirectUrl || (user.role === 'admin' ? "/dashboard" : "/equipment");
+      const targetUrl = redirectUrl || (user.role === 'admin' ? "/dashboard" : "/profile");
       router.replace(targetUrl);
     }
   }, [user, authLoading, router, redirectUrl]);
@@ -86,7 +79,7 @@ export default function LoginPage() {
          <CardHeader className="text-center">
           <CardTitle className="font-headline text-2xl">Login Akun</CardTitle>
           <CardDescription>
-            Masukkan email dan kata sandi Anda.
+            Gunakan Google untuk login cepat atau masuk dengan email Anda.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -98,7 +91,7 @@ export default function LoginPage() {
           </div>
           <div className="my-4 flex items-center">
             <div className="flex-grow border-t border-muted-foreground/20"></div>
-            <span className="mx-2 text-xs text-muted-foreground">ATAU</span>
+            <span className="mx-2 text-xs text-muted-foreground">ATAU MASUK DENGAN EMAIL</span>
             <div className="flex-grow border-t border-muted-foreground/20"></div>
           </div>
           <form onSubmit={handleLogin} className="space-y-4">

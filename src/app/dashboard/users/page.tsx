@@ -3,7 +3,7 @@ import { UsersTable } from './users-table';
 import { Users } from 'lucide-react';
 
 
-export default async function UsersPage() {
+export default function UsersPage() {
     return (
         <div className="flex flex-col gap-4">
             <div>

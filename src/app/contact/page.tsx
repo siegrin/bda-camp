@@ -10,6 +10,13 @@ import { Button } from '@/components/ui/button';
 import { getSettings } from '@/lib/actions';
 import type { SiteSettings } from '@/lib/types';
 import { LoadingScreen } from '@/components/loading-screen';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: "Hubungi Kami",
+  description: "Hubungi BDA.Camp untuk pertanyaan, bantuan, atau informasi lebih lanjut. Kami siap membantu petualangan Anda.",
+};
+
 
 const containerVariants = {
   hidden: { opacity: 0 },

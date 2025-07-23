@@ -1,5 +1,6 @@
 
 import { notFound } from "next/navigation";
+import type { Metadata } from 'next';
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/utils";
@@ -12,7 +13,46 @@ import { RecommendedProducts } from "./recommended-products";
 import { AdminToolbar } from "./admin-toolbar";
 import { createClient } from "@/lib/supabase/server";
 
-export default async function ProductDetailPage({ params }: { params: { id: string } }) {
+type Props = {
+  params: { id: string };
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const id = parseInt(params.id);
+  if (isNaN(id)) {
+    return { title: "Produk Tidak Ditemukan" };
+  }
+  
+  const product = await getProductById(id);
+
+  if (!product) {
+    return {
+      title: "Produk Tidak Ditemukan",
+      description: "Produk yang Anda cari tidak ada atau telah dipindahkan.",
+    };
+  }
+
+  return {
+    title: `Sewa ${product.name}`,
+    description: product.description,
+    openGraph: {
+      title: `Sewa ${product.name} | BDA.Camp`,
+      description: product.description,
+      images: [
+        {
+          url: product.images?.[0] || 'https://placehold.co/600x400.png',
+          width: 600,
+          height: 400,
+          alt: product.name,
+        },
+      ],
+      url: `/equipment/${product.id}`,
+    },
+  };
+}
+
+
+export default async function ProductDetailPage({ params }: Props) {
   const id = parseInt(params.id as string);
   if (!id || isNaN(id)) {
     notFound();

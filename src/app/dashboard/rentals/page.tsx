@@ -10,7 +10,7 @@ import { id } from 'date-fns/locale';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { Loader2, ListOrdered, CheckCircle, Trash2, PlayCircle, XCircle } from 'lucide-react';
+import { Loader2, ListOrdered, CheckCircle, Trash2, PlayCircle, XCircle, PlusCircle } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -34,6 +34,7 @@ import {
 import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import { LoadingScreen } from '@/components/loading-screen';
+import { AddRentalDialog } from '@/components/add-rental-dialog';
 
 function ActionButtons({ rental, onAction }: { rental: Rental, onAction: () => void }) {
     const { toast } = useToast();
@@ -140,16 +141,17 @@ function RentalList({ rentals, onAction }: { rentals: Rental[], onAction: () => 
     )
 }
 
-function ResetRentalsButton({ onReset }: { onReset: () => void }) {
+function AdminHeader({ onActionComplete }: { onActionComplete: () => void }) {
     const { toast } = useToast();
-    const [isPending, startTransition] = useTransition();
+    const [isResetPending, startResetTransition] = useTransition();
+    const [isAddRentalOpen, setAddRentalOpen] = useState(false);
 
     const handleReset = () => {
-        startTransition(async () => {
+        startResetTransition(async () => {
             const result = await resetRentals();
             if (result.success) {
                 toast({ title: "Sukses!", description: result.message });
-                // onReset will be handled by real-time subscription
+                // onActionComplete will be handled by real-time subscription
             } else {
                 toast({ variant: "destructive", title: "Gagal", description: result.message });
             }
@@ -157,29 +159,56 @@ function ResetRentalsButton({ onReset }: { onReset: () => void }) {
     }
 
     return (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button variant="outline" disabled={isPending}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Reset Data
+       <>
+         <div className="flex items-start justify-between gap-4">
+            <div>
+                <h1 className="text-lg font-semibold md:text-2xl flex items-center gap-2">
+                    <ListOrdered className="h-5 w-5 text-muted-foreground" />
+                    Manajemen Penyewaan
+                </h1>
+                <p className="text-sm text-muted-foreground">
+                    Tinjau dan kelola semua pesanan penyewaan dari pelanggan.
+                </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+                 <Button onClick={() => setAddRentalOpen(true)}>
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    Tambah Pesanan
                 </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Tindakan ini akan menghapus semua data penyewaan (aktif dan selesai) secara permanen.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleReset} disabled={isPending} className="bg-destructive hover:bg-destructive/90">
-                        {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Ya, Hapus Data
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+                <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="outline" disabled={isResetPending}>
+                            <Trash2 className="mr-2 h-4 w-4" />
+                            Reset Data
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Apakah Anda yakin?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Tindakan ini akan menghapus semua data penyewaan (aktif dan selesai) secara permanen.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                            <AlertDialogCancel>Batal</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleReset} disabled={isResetPending} className="bg-destructive hover:bg-destructive/90">
+                                {isResetPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                Ya, Hapus Data
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+            </div>
+        </div>
+         <AddRentalDialog 
+            isOpen={isAddRentalOpen} 
+            onOpenChange={setAddRentalOpen} 
+            onFinished={() => {
+                setAddRentalOpen(false);
+                onActionComplete();
+            }}
+        />
+       </>
     );
 }
 
@@ -218,16 +247,7 @@ export default function RentalsPage() {
 
     return (
         <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-                <h1 className="text-lg font-semibold md:text-2xl flex items-center gap-2">
-                    <ListOrdered className="h-5 w-5 text-muted-foreground" />
-                    Manajemen Penyewaan
-                </h1>
-                <ResetRentalsButton onReset={loadData} />
-            </div>
-             <p className="text-sm text-muted-foreground -mt-3">
-                Tinjau dan kelola semua pesanan penyewaan dari pelanggan.
-            </p>
+            <AdminHeader onActionComplete={loadData} />
 
             <Tabs defaultValue="pending">
                 <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">

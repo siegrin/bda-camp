@@ -128,10 +128,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
   
   const handleSignInWithGoogle = async (redirectUrl?: string | null) => {
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
+    
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}/api/auth/callback${redirectUrl ? `?next=${encodeURIComponent(redirectUrl)}` : ''}`,
+        redirectTo: `${siteUrl}/api/auth/callback${redirectUrl ? `?next=${encodeURIComponent(redirectUrl)}` : ''}`,
       },
     });
     if (error) {
