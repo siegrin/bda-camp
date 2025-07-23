@@ -1,0 +1,148 @@
+
+import { notFound } from "next/navigation";
+import type { Metadata } from 'next';
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { formatPrice } from "@/lib/utils";
+import { getProductById } from "@/lib/products";
+import { AddToCartForm } from "./add-to-cart-form";
+import { Breadcrumb } from "@/components/breadcrumb";
+import { ProductViewTracker } from "./product-view-tracker";
+import { ProductGallery } from "./product-gallery";
+import { RecommendedProducts } from "./recommended-products";
+import { AdminToolbar } from "./admin-toolbar";
+import { createClient } from "@/lib/supabase/server";
+
+type Props = {
+  params: { id: string };
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const id = parseInt(params.id);
+  if (isNaN(id)) {
+    return { title: "Produk Tidak Ditemukan" };
+  }
+  
+  const product = await getProductById(id);
+
+  if (!product) {
+    return {
+      title: "Produk Tidak Ditemukan",
+      description: "Produk yang Anda cari tidak ada atau telah dipindahkan.",
+    };
+  }
+
+  return {
+    title: `Sewa ${product.name}`,
+    description: product.description,
+    openGraph: {
+      title: `Sewa ${product.name} | BDA.Camp`,
+      description: product.description,
+      images: [
+        {
+          url: product.images?.[0] || 'https://placehold.co/600x400.png',
+          width: 600,
+          height: 400,
+          alt: product.name,
+        },
+      ],
+      url: `/equipment/${product.id}`,
+    },
+  };
+}
+
+
+export default async function ProductDetailPage({ params }: Props) {
+  const id = parseInt(params.id as string);
+  if (!id || isNaN(id)) {
+    notFound();
+  }
+  
+  const supabase = createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let userRole = 'user';
+  if (user) {
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+    if (profile) {
+        userRole = profile.role;
+    }
+  }
+
+
+  const product = await getProductById(id);
+
+  if (!product) {
+    notFound();
+  }
+  
+  const images = product.images?.length ? product.images : ['https://placehold.co/600x400.png'];
+
+  const breadcrumbItems = [
+    { name: "Beranda", href: "/" },
+    { name: "Katalog", href: "/equipment" },
+    { name: product.category, href: `/equipment?category=${encodeURIComponent(product.category)}`},
+    { name: product.name, href: `/equipment/${product.id}` }
+  ];
+
+  return (
+    <>
+      <div className="container mx-auto px-4 py-8 md:py-12">
+        <ProductViewTracker productId={id} />
+        {userRole === 'admin' && <AdminToolbar product={product} />}
+        <Breadcrumb items={breadcrumbItems} />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-16 mt-6">
+          <div className="relative">
+             <ProductGallery images={images} productName={product.name} dataAiHint={product.data_ai_hint} objectFit={product.object_fit} />
+          </div>
+          
+          <div className="flex flex-col">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                  <Badge 
+                    variant={product.availability === 'Tersedia' ? 'default' : 'destructive'}
+                    className="w-fit"
+                  >
+                    {product.availability}
+                  </Badge>
+                   {product.stock < 5 && product.availability === 'Tersedia' && (
+                     <Badge variant="secondary" className="w-fit">Stok tersisa: {product.stock}</Badge>
+                  )}
+              </div>
+              <h1 className="font-headline text-3xl font-bold tracking-tight md:text-4xl">{product.name}</h1>
+              <p className="mt-2 text-2xl font-bold text-primary">
+                {formatPrice(product.price_per_day)} <span className="text-base font-normal text-muted-foreground">/ hari</span>
+              </p>
+              <p className="mt-4 text-base leading-relaxed md:text-lg text-muted-foreground">{product.description}</p>
+            </div>
+            
+            <Separator className="my-6" />
+
+            <div>
+              <h2 className="font-headline text-2xl font-bold">Spesifikasi</h2>
+              <ul className="mt-4 space-y-2 text-sm md:text-base">
+                {product.specs && Object.entries(product.specs).map(([key, value]) => (
+                  <li key={key} className="flex justify-between">
+                    <span className="font-medium text-muted-foreground">{key}:</span>
+                    <span className="font-bold text-right">{value}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <Separator className="my-6" />
+            
+            <div className="rounded-lg border bg-card p-4 mt-auto">
+               <AddToCartForm product={product} />
+            </div>
+          </div>
+        </div>
+      </div>
+      <RecommendedProducts currentProduct={product} />
+    </>
+  );
+}
