@@ -318,8 +318,19 @@ export const addProduct = adminAction(async (user, data: FormData) => {
 
 export const updateProduct = adminAction(async (user, id: number, data: FormData) => {
     const supabase = createSupabaseAdminClient();
+    
+    const { data: currentProduct, error: fetchError } = await supabase
+        .from('products')
+        .select('images')
+        .eq('id', id)
+        .single();
+
+    if (fetchError) {
+        return { success: false, message: 'Gagal mengambil data produk saat ini.' };
+    }
+
     const formDataObj = Object.fromEntries(data.entries());
-    const { images, specs } = await parseAndSaveProductImages(data);
+    const { images: newImages, specs } = await parseAndSaveProductImages(data);
     
     const validatedFields = ProductSchema.partial().safeParse({ ...formDataObj });
     if (!validatedFields.success) {
@@ -328,10 +339,23 @@ export const updateProduct = adminAction(async (user, id: number, data: FormData
 
     const { error } = await supabase
         .from('products')
-        .update({ ...validatedFields.data, images, specs })
+        .update({ ...validatedFields.data, images: newImages, specs })
         .eq('id', id);
 
     if (error) return { success: false, message: `Gagal memperbarui produk: ${error.message}` };
+    
+    const oldImages = currentProduct?.images || [];
+    const imagesToDelete = oldImages.filter(img => !newImages.includes(img));
+    
+    if (imagesToDelete.length > 0) {
+        const filePaths = imagesToDelete.map(url => url.substring(url.lastIndexOf('/product-images/') + '/product-images/'.length));
+        const { error: deleteError } = await supabase.storage.from('product-images').remove(filePaths);
+        if (deleteError) {
+            console.error("Gagal menghapus beberapa gambar lama di storage:", deleteError.message);
+            // Non-blocking error, so we still return success but log it.
+        }
+    }
+
 
     await logActivity('Ubah Produk', `Produk dengan ID "${id}" telah diperbarui.`, user);
     
@@ -344,10 +368,31 @@ export const updateProduct = adminAction(async (user, id: number, data: FormData
 
 export const deleteProduct = adminAction(async (user, id: number) => {
     const supabase = createSupabaseAdminClient();
+    
+    const { data: productToDelete, error: fetchError } = await supabase
+        .from('products')
+        .select('name, images')
+        .eq('id', id)
+        .single();
+    
+    if (fetchError || !productToDelete) {
+        return { success: false, message: 'Produk tidak ditemukan atau gagal mengambil data.' };
+    }
+
     const { error } = await supabase.from('products').delete().eq('id', id);
     if (error) return { success: false, message: `Gagal menghapus produk: ${error.message}` };
+    
+    if (productToDelete.images && productToDelete.images.length > 0) {
+        const filePaths = productToDelete.images.map(url => url.substring(url.lastIndexOf('/product-images/') + '/product-images/'.length));
+        const { error: deleteError } = await supabase.storage.from('product-images').remove(filePaths);
+        if (deleteError) {
+             console.error("Gagal menghapus gambar produk di storage:", deleteError.message);
+             // Non-blocking error
+        }
+    }
 
-    await logActivity('Hapus Produk', `Produk dengan ID "${id}" telah dihapus.`, user);
+
+    await logActivity('Hapus Produk', `Produk "${productToDelete.name}" telah dihapus.`, user);
     
     revalidatePath('/dashboard/products');
     revalidatePath('/equipment');
@@ -397,11 +442,18 @@ export const logProductView = async (productId: number) => {
         const { data, error } = await supabase.from('analytics').select('*').single();
         if (error) throw error;
         
-        const analytics: AnalyticsData = data || { daily_visitors: [], top_products: [], weekly_summary: { total_revenue: 0, total_rentals: 0 } };
+        let analytics: AnalyticsData = data || { daily_visitors: [], top_products: [], weekly_summary: { total_revenue: 0, total_rentals: 0 } };
+
+        // Defensive check for daily_visitors array
+        if (!analytics.daily_visitors || !Array.isArray(analytics.daily_visitors) || analytics.daily_visitors.length !== 7) {
+            analytics.daily_visitors = Array(7).fill(null).map((_, i) => ({ day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][i], visitors: 0 }));
+        }
 
         // Update daily visitors
         const dayIndex = new Date().getDay();
-        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Monday is 0, Sunday is 6
+        
+        // Ensure the object for the current day exists
         if (!analytics.daily_visitors[adjustedIndex]) {
              analytics.daily_visitors[adjustedIndex] = { day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][adjustedIndex], visitors: 0 };
         }
@@ -428,7 +480,11 @@ export const logProductView = async (productId: number) => {
 
 export const resetAnalyticsData = adminAction(async (user) => {
     const supabase = createClientForActions();
-    const defaultData: Omit<AnalyticsData, 'id'> = { daily_visitors: Array(7).fill(null).map((_, i) => ({ day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][i], visitors: 0 })), top_products: [], weekly_summary: { total_revenue: 0, total_rentals: 0 } };
+    const defaultData: Omit<AnalyticsData, 'id' | 'total_products' | 'total_users'> = { 
+        daily_visitors: Array(7).fill(null).map((_, i) => ({ day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][i], visitors: 0 })), 
+        top_products: [], 
+        weekly_summary: { total_revenue: 0, total_rentals: 0 } 
+    };
     const { error } = await supabase.from('analytics').update(defaultData).eq('id', 1);
 
     if (error) return { success: false, message: `Gagal mereset data: ${error.message}`};
@@ -833,7 +889,7 @@ export async function getReportData(): Promise<{ success: boolean; message: stri
     reportData.rentals.forEach(rental => {
         rental.items.forEach(item => {
             const categoryName = productCategoryMap.get(item.id) || 'Uncategorized';
-            categoryDistribution[categoryName] = (categoryDistribution[categoryName] || 0) + 1;
+            categoryDistribution[categoryName] = (categoryDistribution[categoryName] || 0) + item.quantity;
         });
     });
 
@@ -896,3 +952,5 @@ export async function getReportData(): Promise<{ success: boolean; message: stri
     
     return { success: true, message: "Report data generated", data: base64String };
 }
+
+

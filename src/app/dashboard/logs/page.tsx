@@ -184,7 +184,7 @@ export default function LogsPage() {
                                                 <Badge variant={getActionBadgeVariant(log.action)}>{log.action}</Badge>
                                             </TableCell>
                                             <TableCell className="font-medium">{log.details}</TableCell>
-                                            <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{log.user}</TableCell>
+                                            <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">{log.user_name}</TableCell>
                                         </TableRow>
                                     ))
                                 ) : (

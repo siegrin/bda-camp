@@ -52,7 +52,7 @@ export interface MockUser {
 export interface ActivityLog {
   id: number;
   timestamp: string;
-  user: string;
+  user_name: string;
   action: string;
   details: string;
 }
