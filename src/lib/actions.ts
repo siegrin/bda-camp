@@ -3,7 +3,7 @@
 
 import type { Product, Category, Subcategory, ActivityLog, MockUser, SiteSettings, AnalyticsData, Rental, RentalStatus, CartItem, ReportData } from './types';
 import { createSupabaseAdminClient } from '@/lib/supabase/admin';
-import { createClient as createServerClient } from '@/lib/supabase/server';
+import { createServerClient } from '@supabase/ssr'
 import { cookies, headers } from 'next/headers'
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
@@ -53,8 +53,30 @@ setInterval(() => {
 }, 60 * 60 * 1000);
 // --- END: Rate Limiting ---
 
+
+// This function should not be used directly in Server Components
+// as it relies on cookies(). Instead, use the one from middleware or route handlers.
+function createClientForActions() {
+    const cookieStore = cookies();
+    return createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+            cookies: {
+                get: (name) => cookieStore.get(name)?.value,
+                set: (name, value, options) => {
+                    try { cookieStore.set({ name, value, ...options }); } catch (error) {}
+                },
+                remove: (name, options) => {
+                    try { cookieStore.set({ name, value: '', ...options }); } catch (error) {}
+                },
+            },
+        }
+    );
+}
+
 async function getCurrentUser() {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
@@ -384,7 +406,7 @@ export const logRentalCheckout = userAction(async (user, cart: CartItem[]) => {
         return { success: false, message: 'Terlalu banyak percobaan. Harap tunggu beberapa saat.' };
     }
 
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const total = cart.reduce((acc, item) => acc + item.price_per_day * item.days * item.quantity, 0);
 
     const newRental: Omit<Rental, 'id' | 'checkout_date'> = {
@@ -413,7 +435,7 @@ export const logRentalCheckout = userAction(async (user, cart: CartItem[]) => {
 
 export const logProductView = async (productId: number) => {
     try {
-        const supabase = createServerClient();
+        const supabase = createClientForActions();
         const { data: product, error: pError } = await supabase.from('products').select('name').eq('id', productId).single();
         if (pError || !product) return { success: false, message: 'Produk tidak ditemukan.' };
 
@@ -423,7 +445,7 @@ export const logProductView = async (productId: number) => {
         const analytics: AnalyticsData = data || { daily_visitors: [], top_products: [], weekly_summary: { total_revenue: 0, total_rentals: 0 } };
 
         // Defensive check and initialization for daily_visitors
-        if (!Array.isArray(analytics.daily_visitors) || analytics.daily_visitors.length !== 7) {
+        if (!analytics.daily_visitors || analytics.daily_visitors.length !== 7) {
             analytics.daily_visitors = Array(7).fill(null).map((_, i) => ({ day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][i], visitors: 0 }));
         }
 
@@ -431,11 +453,11 @@ export const logProductView = async (productId: number) => {
         const dayIndex = new Date().getDay();
         const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Sunday is 0, make it 6 for our array
         
-        // Ensure the day object exists and is valid
-        if (!analytics.daily_visitors[adjustedIndex] || typeof analytics.daily_visitors[adjustedIndex].visitors !== 'number') {
+        // Ensure the day object exists
+        if (!analytics.daily_visitors[adjustedIndex]) {
              analytics.daily_visitors[adjustedIndex] = { day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][adjustedIndex], visitors: 0 };
         }
-        analytics.daily_visitors[adjustedIndex].visitors += 1;
+        analytics.daily_visitors[adjustedIndex].visitors = (analytics.daily_visitors[adjustedIndex].visitors || 0) + 1;
 
         // Update top products
         const topProductIndex = analytics.top_products.findIndex(p => p.name === product.name);
@@ -457,7 +479,7 @@ export const logProductView = async (productId: number) => {
 };
 
 export const resetAnalyticsData = adminAction(async (user) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const defaultData: Omit<AnalyticsData, 'id' | 'total_products' | 'total_users'> = { 
         daily_visitors: Array(7).fill(null).map((_, i) => ({ day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][i], visitors: 0 })), 
         top_products: [], 
@@ -474,13 +496,12 @@ export const resetAnalyticsData = adminAction(async (user) => {
 });
 
 export async function getSettings(): Promise<SiteSettings> {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const { data } = await supabase.from('settings').select('*').single();
     const defaultSettings: SiteSettings = {
         email: '', phone: '', address: '', whatsapp_number: '', 
         social: { twitter: '#', facebook: '#', instagram: '#' },
         logo_url: null,
-        logo_svg_content: null,
     };
     
     if (!data) return defaultSettings;
@@ -491,10 +512,10 @@ export async function getSettings(): Promise<SiteSettings> {
         address: data.address || '',
         whatsapp_number: data.whatsapp_number || '',
         social: data.social || { twitter: '#', facebook: '#', instagram: '#' },
-        logo_url: data.logo_url || null,
-        logo_svg_content: data.logo_svg_content || null,
+        logo_url: data.logo_url || null
     };
 }
+
 
 export const updateSettings = adminAction(async (user, data: FormData) => {
     const supabase = createSupabaseAdminClient();
@@ -506,51 +527,36 @@ export const updateSettings = adminAction(async (user, data: FormData) => {
         const errorMessage = validatedFields.error.flatten().fieldErrors[firstErrorKey]?.[0] || 'Data tidak valid.';
         return { success: false, message: errorMessage };
     }
+    
+    let newLogoUrl = formDataObj.logo_url_existing as string || null;
+    const logoFile = data.get('logo_new') as File | null;
+    if (logoFile && logoFile.size > 0) {
+        newLogoUrl = await uploadImage(logoFile, 'site-assets');
+    }
 
-    const updatePayload: Partial<SiteSettings> = {
-        ...validatedFields.data,
+    const { error } = await supabase.from('settings').update({
+        email: validatedFields.data.email,
+        phone: validatedFields.data.phone,
+        address: validatedFields.data.address,
+        whatsapp_number: validatedFields.data.whatsapp_number,
         social: {
             twitter: validatedFields.data.social_twitter,
             facebook: validatedFields.data.social_facebook,
             instagram: validatedFields.data.social_instagram,
         },
-    };
+        logo_url: newLogoUrl
+    }).eq('id', 1);
 
-    const logoFile = data.get('logo_new') as File | null;
-    const svgContent = data.get('logo_svg_content') as string | null;
-
-    if (svgContent) {
-        // If SVG content is provided, prioritize it
-        updatePayload.logo_svg_content = svgContent;
-        updatePayload.logo_url = null; // Clear the URL field
-    } else if (logoFile && logoFile.size > 0) {
-        // If an image file is provided, upload it
-        const newLogoUrl = await uploadImage(logoFile, 'site-assets');
-        updatePayload.logo_url = newLogoUrl;
-        updatePayload.logo_svg_content = null; // Clear the SVG field
-    }
-    // If neither is provided, existing values remain unchanged.
-
-    const { error } = await supabase
-        .from('settings')
-        .update(updatePayload)
-        .eq('id', 1);
-
-    if (error) {
-        console.error("Error updating settings:", error);
-        return { success: false, message: `Gagal memperbarui pengaturan: ${error.message}` };
-    }
+    if (error) return { success: false, message: `Gagal memperbarui pengaturan: ${error.message}` };
 
     await logActivity('Ubah Pengaturan', 'Pengaturan situs telah diperbarui.', user);
     
-    revalidatePath('/dashboard/settings');
     revalidatePath('/', 'layout');
-
     return { success: true, message: 'Pengaturan berhasil diperbarui.' };
 });
 
 export const addCategory = adminAction(async (user, data: FormData) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const validatedFields = CategorySchema.safeParse(Object.fromEntries(data.entries()));
     if (!validatedFields.success) {
         return { success: false, message: validatedFields.error.flatten().fieldErrors.name?.[0] || "Input tidak valid." };
@@ -570,7 +576,7 @@ export const addCategory = adminAction(async (user, data: FormData) => {
 });
 
 export const updateCategory = adminAction(async (user, id: number, data: FormData) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const validatedFields = CategorySchema.safeParse(Object.fromEntries(data.entries()));
     if (!validatedFields.success) return { success: false, message: "Input tidak valid." };
     
@@ -583,7 +589,7 @@ export const updateCategory = adminAction(async (user, id: number, data: FormDat
 });
 
 export const deleteCategory = adminAction(async (user, id: number) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const { error } = await supabase.from('categories').delete().eq('id', id);
     if (error) return { success: false, message: `Gagal menghapus kategori: ${error.message}` };
 
@@ -593,7 +599,7 @@ export const deleteCategory = adminAction(async (user, id: number) => {
 });
 
 export const addSubcategory = adminAction(async (user, data: FormData) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const validatedFields = SubcategorySchema.safeParse(Object.fromEntries(data.entries()));
     if (!validatedFields.success) return { success: false, message: "Input tidak valid." };
 
@@ -607,7 +613,7 @@ export const addSubcategory = adminAction(async (user, data: FormData) => {
 });
 
 export const updateSubcategory = adminAction(async (user, id: number, data: FormData) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const validatedFields = SubcategorySchema.safeParse(Object.fromEntries(data.entries()));
     if (!validatedFields.success) return { success: false, message: "Input tidak valid." };
 
@@ -621,7 +627,7 @@ export const updateSubcategory = adminAction(async (user, id: number, data: Form
 });
 
 export const deleteSubcategory = adminAction(async (user, id: number) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const { error } = await supabase.from('subcategories').delete().eq('id', id);
     if (error) return { success: false, message: `Gagal menghapus subkategori: ${error.message}` };
 
@@ -631,7 +637,7 @@ export const deleteSubcategory = adminAction(async (user, id: number) => {
 });
 
 export const getBackupData = adminAction(async (user) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const tables = ['products', 'categories', 'subcategories', 'rentals', 'profiles', 'settings', 'activity_log'];
     const backupData: Record<string, any[]> = {};
 
@@ -648,7 +654,7 @@ export const getBackupData = adminAction(async (user) => {
 });
 
 export const resetRentals = adminAction(async (user) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const { error } = await supabase.from('rentals').delete().neq('id', 0); // Delete all
     if (error) return { success: false, message: 'Gagal mereset data penyewaan.'};
 
@@ -658,7 +664,7 @@ export const resetRentals = adminAction(async (user) => {
 });
 
 export const resetActivityLog = adminAction(async (user) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     await logActivity('Reset Log', 'Semua log aktivitas akan dihapus.', user);
     
     const { error } = await supabase.from('activity_log').delete().neq('id', 0);
@@ -713,7 +719,7 @@ export const updateUserProfile = userAction(async (user, formData: FormData): Pr
         return { success: false, message: 'Terlalu banyak percobaan. Harap tunggu beberapa saat.' };
     }
     
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     
     const displayName = formData.get('displayName') as string;
     const username = formData.get('username') as string;
@@ -770,7 +776,7 @@ export const changeUserPassword = userAction(async (user, currentPass: string, n
 });
 
 const changeRentalStatus = adminAction(async (user, rentalId: number, newStatus: RentalStatus, logAction: string) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const { data, error } = await supabase.from('rentals').update({ status: newStatus }).eq('id', rentalId).select().single();
     if (error) return { success: false, message: `Gagal memperbarui status: ${error.message}` };
 
@@ -786,7 +792,7 @@ export const cancelRental = async (rentalId: number) => changeRentalStatus(renta
 
 
 export const completeRental = adminAction(async (user, rentalId: number) => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const { data: rental, error: rError } = await supabase.from('rentals').select('*').eq('id', rentalId).single();
     if (rError || !rental) return { success: false, message: 'Penyewaan tidak ditemukan.' };
     
@@ -810,7 +816,7 @@ export const completeRental = adminAction(async (user, rentalId: number) => {
 });
 
 export const getUserRentals = userAction(async (user): Promise<{ success: boolean; message: string; data?: Rental[] }> => {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     const { data, error } = await supabase.from('rentals').select('*').eq('user_id', user.uid).order('checkout_date', { ascending: false });
     if (error) return { success: false, message: 'Gagal mengambil riwayat penyewaan.', data: [] };
     return { success: true, message: 'User rentals fetched.', data: data || [] };
@@ -840,13 +846,13 @@ export const subscribeToNewsletter = async (data: FormData) => {
 
 export const signOutUser = async () => {
   'use server';
-  const supabase = createServerClient();
+  const supabase = createClientForActions();
   await supabase.auth.signOut();
   revalidatePath('/', 'layout');
 }
 
 export async function getReportData(): Promise<{ success: boolean; message: string; data?: string }> {
-    const supabase = createServerClient();
+    const supabase = createClientForActions();
     
     const { data: { session }} = await supabase.auth.getSession();
     if (!session) {
@@ -946,73 +952,3 @@ export async function getReportData(): Promise<{ success: boolean; message: stri
     
     return { success: true, message: "Report data generated", data: base64String };
 }
-
-const AddRentalSchema = z.object({
-  user_id: z.string().uuid({ message: "Pengguna harus dipilih." }),
-  status: z.enum(['pending', 'active', 'completed', 'cancelled'], { message: "Status tidak valid." }),
-});
-
-export const addRentalByAdmin = adminAction(async (adminUser, formData: FormData) => {
-    const supabase = createSupabaseAdminClient();
-    const validatedFields = AddRentalSchema.safeParse(Object.fromEntries(formData));
-
-    if (!validatedFields.success) {
-        return { success: false, message: validatedFields.error.flatten().fieldErrors[Object.keys(validatedFields.error.flatten().fieldErrors)[0]]?.[0] || 'Data tidak valid.' };
-    }
-    
-    const { user_id, status } = validatedFields.data;
-
-    const rentalItems: Rental['items'] = [];
-    let total = 0;
-
-    const { data: products } = await supabase.from('products').select('id, name, price_per_day');
-    const productMap = new Map(products?.map(p => [p.id.toString(), p]));
-
-    for (const [key, value] of formData.entries()) {
-        if (key.startsWith('product_')) {
-            const index = key.split('_')[1];
-            const productId = value as string;
-            const quantity = parseInt(formData.get(`quantity_${index}`) as string);
-            const days = parseInt(formData.get(`days_${index}`) as string);
-            
-            const product = productMap.get(productId);
-
-            if (product && quantity > 0 && days > 0) {
-                rentalItems.push({
-                    id: product.id,
-                    name: product.name,
-                    quantity,
-                    days,
-                    price_per_day: product.price_per_day
-                });
-                total += product.price_per_day * days * quantity;
-            }
-        }
-    }
-
-    if (rentalItems.length === 0) {
-        return { success: false, message: 'Pesanan harus memiliki setidaknya satu item.' };
-    }
-
-    const { data: userProfile } = await supabase.from('profiles').select('display_name').eq('id', user_id).single();
-    if (!userProfile) {
-        return { success: false, message: 'Profil pengguna tidak ditemukan.' };
-    }
-
-    const newRental: Omit<Rental, 'id' | 'checkout_date'> = {
-        user_id,
-        user_name: userProfile.display_name,
-        items: rentalItems,
-        total,
-        status,
-    };
-
-    const { error } = await supabase.from('rentals').insert(newRental);
-    if (error) {
-        return { success: false, message: `Gagal menambahkan pesanan: ${error.message}` };
-    }
-
-    await logActivity('Tambah Pesanan (Admin)', `Pesanan baru untuk "${userProfile.display_name}" dibuat.`, adminUser);
-    revalidatePath('/dashboard/rentals');
-    return { success: true, message: 'Pesanan berhasil ditambahkan.' };
-});

@@ -1,31 +1,21 @@
 
 'use client';
 
-import { useState, useEffect, useTransition, ChangeEvent, useRef } from 'react';
+import { useState, useEffect, useTransition, ChangeEvent } from 'react';
 import Image from 'next/image';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Settings, Save, Upload } from 'lucide-react';
+import { Loader2, Settings, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getSettings, updateSettings } from '@/lib/actions';
 import type { SiteSettings } from '@/lib/types';
 import { LogoIcon } from '@/components/icons';
 import { ImageCropperDialog } from '@/components/image-cropper-dialog';
 import { LoadingScreen } from '@/components/loading-screen';
-import { useRouter } from 'next/navigation';
 
-function LogoPreview({ logoUrl, svgContent }: { logoUrl?: string | null, svgContent?: string | null }) {
-  if (svgContent) {
-    return (
-      <div 
-        className="h-24 w-24 p-2 text-primary [&_svg]:h-full [&_svg]:w-full"
-        dangerouslySetInnerHTML={{ __html: svgContent }}
-      />
-    );
-  }
-
+function LogoPreview({ logoUrl }: { logoUrl?: string | null }) {
   if (logoUrl) {
     return (
       <Image 
@@ -47,18 +37,12 @@ export default function SettingsPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isPending, startTransition] = useTransition();
     const { toast } = useToast();
-    const router = useRouter();
-    const fileInputRef = useRef<HTMLInputElement>(null);
     
     // State for logo editing
-    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [previewSvg, setPreviewSvg] = useState<string | null>(null);
-    const [imageToCrop, setImageToCrop] = useState<string | null>(null);
+    const [logoPreview, setLogoPreview] = useState<string | null>(null);
+    const [logoToCrop, setLogoToCrop] = useState<string | null>(null);
     const [isCropperOpen, setCropperOpen] = useState(false);
-    
-    // Final files to be submitted
-    const [finalImageFile, setFinalImageFile] = useState<File | null>(null);
-    const [finalSvgContent, setFinalSvgContent] = useState<string | null>(null);
+    const [croppedLogoFile, setCroppedLogoFile] = useState<File | null>(null);
 
 
     useEffect(() => {
@@ -66,8 +50,7 @@ export default function SettingsPage() {
             setIsLoading(true);
             const currentSettings = await getSettings();
             setSettings(currentSettings);
-            setPreviewUrl(currentSettings.logo_url);
-            setPreviewSvg(currentSettings.logo_svg_content);
+            setLogoPreview(currentSettings.logo_url);
             setIsLoading(false);
         }
         loadSettings();
@@ -76,48 +59,25 @@ export default function SettingsPage() {
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
-
-            if (file.type === 'image/svg+xml') {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    let svgText = reader.result as string;
-                    // Sanitize and prepare SVG for dynamic coloring
-                    svgText = svgText
-                        .replace(/width="[^"]*"/g, '')
-                        .replace(/height="[^"]*"/g, '')
-                        .replace(/fill="[^"]*"/g, 'fill="currentColor"');
-
-                    setFinalSvgContent(svgText);
-                    setPreviewSvg(svgText);
-                    
-                    setFinalImageFile(null);
-                    setPreviewUrl(null);
-                };
-                reader.readAsText(file);
-            } else {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    if (typeof reader.result === 'string') {
-                        setImageToCrop(reader.result);
-                        setCropperOpen(true);
-                    }
-                };
-                reader.readAsDataURL(file);
-            }
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                if (typeof reader.result === 'string') {
+                    setLogoToCrop(reader.result);
+                    setCropperOpen(true);
+                }
+            };
+            reader.readAsDataURL(file);
             e.target.value = ''; // Reset input so the same file can be chosen again
         }
     };
 
-    const handleCropComplete = (croppedImageB64: string) => {
-        setPreviewUrl(croppedImageB64);
-        fetch(croppedImageB64)
+    const handleCropComplete = (newCroppedLogo: string) => {
+        setLogoPreview(newCroppedLogo); // Update preview immediately
+        fetch(newCroppedLogo)
           .then(res => res.blob())
           .then(blob => {
             const file = new File([blob], "logo.png", { type: "image/png" });
-            setFinalImageFile(file);
-
-            setFinalSvgContent(null);
-            setPreviewSvg(null);
+            setCroppedLogoFile(file);
           });
         setCropperOpen(false);
     };
@@ -129,18 +89,14 @@ export default function SettingsPage() {
 
         startTransition(async () => {
             const formData = new FormData(event.currentTarget);
-            
-            // Append the correct logo data
-            if (finalSvgContent) {
-                formData.append('logo_svg_content', finalSvgContent);
-            } else if (finalImageFile) {
-                formData.append('logo_new', finalImageFile);
+            if (croppedLogoFile) {
+                formData.append('logo_new', croppedLogoFile);
             }
+            formData.append('logo_url_existing', logoPreview || '');
             
             const result = await updateSettings(formData);
             if (result.success) {
                 toast({ title: "Sukses!", description: "Pengaturan berhasil diperbarui." });
-                router.refresh();
             } else {
                 toast({ variant: "destructive", title: "Gagal", description: result.message });
             }
@@ -166,30 +122,31 @@ export default function SettingsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Logo Situs</CardTitle>
-                        <CardDescription>Unggah SVG (untuk warna dinamis) atau gambar (PNG/JPG).</CardDescription>
+                        <CardDescription>Unggah dan potong logo untuk ditampilkan di header.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-2">
                             <Label>Pratinjau Logo</Label>
                             <div className="w-24 h-24 rounded-lg border flex items-center justify-center bg-muted/50 p-1">
-                                <LogoPreview logoUrl={previewUrl} svgContent={previewSvg} />
+                                <LogoPreview logoUrl={logoPreview} />
                             </div>
                         </div>
                         <div className="space-y-2">
-                            <Button type="button" variant="outline" onClick={() => fileInputRef.current?.click()} disabled={isPending}>
-                                <Upload className="mr-2 h-4 w-4" />
+                            <Label 
+                                htmlFor="logo-upload" 
+                                className="inline-block cursor-pointer rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+                            >
                                 Ganti Logo
-                            </Button>
+                            </Label>
                              <Input
                                 id="logo-upload"
                                 type="file"
-                                accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                                accept="image/png, image/jpeg, image/webp"
                                 className="sr-only"
                                 onChange={handleFileChange}
                                 disabled={isPending}
-                                ref={fileInputRef}
                             />
-                            <p className="text-xs text-muted-foreground">Rekomendasi ukuran persegi (1:1). SVG akan diubah ukurannya.</p>
+                            <p className="text-xs text-muted-foreground">Rekomendasi ukuran persegi (1:1).</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -250,7 +207,7 @@ export default function SettingsPage() {
              <ImageCropperDialog
                 isOpen={isCropperOpen}
                 onOpenChange={setCropperOpen}
-                imageSrc={imageToCrop}
+                imageSrc={logoToCrop}
                 onCropComplete={handleCropComplete}
                 aspectRatio={1}
                 description="Rekomendasi ukuran persegi (1:1)."

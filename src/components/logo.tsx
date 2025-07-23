@@ -4,16 +4,7 @@
 import Image from "next/image";
 import { LogoIcon } from "@/components/icons";
 
-export function Logo({ className, logoUrl, svgContent }: { className?: string, logoUrl?: string | null, svgContent?: string | null }) {
-  if (svgContent) {
-    return (
-       <div 
-        className={className}
-        dangerouslySetInnerHTML={{ __html: svgContent }}
-      />
-    )
-  }
-  
+export function Logo({ className, logoUrl }: { className?: string, logoUrl?: string | null }) {
   if (logoUrl) {
     return (
       <Image 

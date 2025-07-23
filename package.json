@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node -r dotenv/config ./node_modules/next/dist/bin/next dev --turbopack",
+    "dev": "next dev --turbopack",
     "genkit:dev": "genkit start",
     "genkit:watch": "genkit start --watch",
     "build": "next build",
@@ -44,7 +44,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
     "docx": "^8.5.0",
-    "dotenv": "^16.4.5",
+    "dotenv": "^16.5.0",
     "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^11.2.12",

@@ -12,12 +12,6 @@ import { LogOut, UserCog, Package } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { UserRentalHistory } from "@/components/user-rental-history";
 import { LoadingScreen } from "@/components/loading-screen";
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: "Profil Saya",
-  description: "Kelola informasi profil, lihat riwayat penyewaan, dan akses pengaturan akun Anda di BDA.Camp.",
-};
 
 export default function ProfilePage() {
   const { user, loading, signOut } = useAuth();

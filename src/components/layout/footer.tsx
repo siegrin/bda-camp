@@ -18,7 +18,7 @@ export function Footer({ settings }: { settings: SiteSettings }) {
         <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-4 md:col-span-2 lg:col-span-1">
             <Link href="/" className="flex items-center space-x-2">
-              <Logo className="h-8 w-8 text-primary" logoUrl={settings.logo_url} svgContent={settings.logo_svg_content} />
+              <Logo className="h-8 w-8 text-primary" logoUrl={settings.logo_url} />
               <span className="font-headline text-lg font-bold">
                 BDA.Camp
               </span>

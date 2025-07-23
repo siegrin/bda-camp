@@ -6,18 +6,16 @@ import Link from 'next/link';
 import { X, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useAuth } from '@/context/auth-context';
-import { usePathname } from 'next/navigation';
 
-const PROMO_BANNER_DISMISSED_KEY = 'promo_banner_dismissed_v1';
+const PROMO_BANNER_DISMISSED_KEY = 'promo_banner_dismissed';
 
 export function PromoBanner() {
-  const { user } = useAuth();
-  const pathname = usePathname();
+  // Default to false, assuming the banner should be shown initially.
   const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
     // This effect runs on the client after hydration.
+    // Check if the banner was already dismissed in this session.
     const dismissedInSession = sessionStorage.getItem(PROMO_BANNER_DISMISSED_KEY);
     if (dismissedInSession === 'true') {
       setIsDismissed(true);
@@ -25,17 +23,19 @@ export function PromoBanner() {
   }, []);
 
   const handleDismiss = () => {
+    // When the user clicks dismiss, set the flag in sessionStorage and update state.
     sessionStorage.setItem(PROMO_BANNER_DISMISSED_KEY, 'true');
     setIsDismissed(true);
   };
   
-  // Do not render banner if: dismissed, user is admin, or on dashboard
-  if (isDismissed || user?.role === 'admin' || pathname.startsWith('/dashboard')) {
+  // If the banner is dismissed, render nothing.
+  if (isDismissed) {
     return null;
   }
 
   return (
     <AnimatePresence>
+      {!isDismissed && (
         <motion.div
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: 'auto' }}
@@ -68,6 +68,7 @@ export function PromoBanner() {
             </div>
           </div>
         </motion.div>
+      )}
     </AnimatePresence>
   );
 }

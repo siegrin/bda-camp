@@ -1,6 +1,6 @@
 
 <div align="center">
-  <img src="https://oezlpjdnmogmnjiqxtbo.supabase.co/storage/v1/object/public/site-assets/1753230066484-logo.png" alt="BDA.Camp Logo" width="120">
+  <img src="https://raw.githubusercontent.com/user-attachments/assets/51351111-939a-471a-a1e4-3c82e6d9b324" alt="BDA.Camp Logo" width="120">
   <h1 align="center">BDA.Camp - Aplikasi Penyewaan Peralatan Kemah</h1>
   <p align="center">
     Sebuah aplikasi web modern yang dibangun dengan <strong>Next.js</strong>. Proyek ini berfungsi sebagai contoh penerapan praktik terbaik dalam pengembangan web, termasuk penggunaan <strong>React Server Components</strong>, <strong>Server Actions</strong>, integrasi backend dengan <strong>Supabase</strong>, dan fitur AI yang didukung oleh <strong>Google Genkit</strong>.

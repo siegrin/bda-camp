@@ -82,7 +82,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
                   className="flex items-center gap-2 text-lg font-semibold"
                   onClick={closeSheet}
                 >
-                  <Logo className="h-8 w-8 text-primary" logoUrl={settings.logo_url} svgContent={settings.logo_svg_content} />
+                  <Logo className="h-8 w-8 text-primary" logoUrl={settings.logo_url} />
                   <span className="font-headline">BDA.Camp</span>
                 </Link>
 
@@ -112,7 +112,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
             </SheetContent>
           </Sheet>
            <Link href="/" className="flex items-center space-x-2">
-              <Logo className="h-8 w-8 text-primary" logoUrl={settings.logo_url} svgContent={settings.logo_svg_content} />
+              <Logo className="h-8 w-8 text-primary" logoUrl={settings.logo_url} />
               <span className="font-bold font-headline text-lg whitespace-nowrap sm:hidden">BDA</span>
                <span className="hidden font-bold font-headline text-lg whitespace-nowrap sm:inline-block">BDA.Camp</span>
             </Link>
@@ -120,7 +120,7 @@ export function Header({ settings }: { settings: SiteSettings }) {
 
         <div className="mr-6 hidden md:flex items-center">
             <Link href="/" className="flex items-center space-x-2">
-              <Logo className="h-8 w-8 text-primary" logoUrl={settings.logo_url} svgContent={settings.logo_svg_content} />
+              <Logo className="h-8 w-8 text-primary" logoUrl={settings.logo_url} />
               <span className="hidden font-bold sm:inline-block font-headline">
                 BDA.Camp
               </span>

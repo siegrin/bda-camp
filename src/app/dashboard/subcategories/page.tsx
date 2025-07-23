@@ -275,7 +275,7 @@ export default function SubcategoriesPage() {
                     </Table>
                 </div>
              </div>
-             <div className="grid gap-4 md:hidden p-4">
+             <div className="grid gap-4 md:hidden">
                 {filteredSubcategories.length > 0 ? (
                     filteredSubcategories.map((subcategory) => (
                         <Card key={subcategory.id} className="p-4 flex items-start justify-between">

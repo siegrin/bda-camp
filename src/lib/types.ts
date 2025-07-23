@@ -68,7 +68,6 @@ export interface SiteSettings {
     instagram: string;
   };
   logo_url: string | null;
-  logo_svg_content: string | null;
 }
 
 export interface AnalyticsData {

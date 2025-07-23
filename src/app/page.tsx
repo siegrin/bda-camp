@@ -1,4 +1,5 @@
 
+'use server';
 import { CtaSection } from "@/components/landing/cta-section";
 import { FeaturedProductsSection } from "@/components/landing/featured-products-section";
 import { HeroSection } from "@/components/landing/hero-section";
