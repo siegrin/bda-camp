@@ -10,17 +10,28 @@ import { AnimatePresence, motion } from 'framer-motion';
 const PROMO_BANNER_DISMISSED_KEY = 'promo_banner_dismissed';
 
 export function PromoBanner() {
-  const [isDismissed, setIsDismissed] = useState(true);
+  // Default to false, assuming the banner should be shown initially.
+  const [isDismissed, setIsDismissed] = useState(false);
 
   useEffect(() => {
-    const dismissed = sessionStorage.getItem(PROMO_BANNER_DISMISSED_KEY);
-    setIsDismissed(dismissed === 'true');
+    // This effect runs on the client after hydration.
+    // Check if the banner was already dismissed in this session.
+    const dismissedInSession = sessionStorage.getItem(PROMO_BANNER_DISMISSED_KEY);
+    if (dismissedInSession === 'true') {
+      setIsDismissed(true);
+    }
   }, []);
 
   const handleDismiss = () => {
+    // When the user clicks dismiss, set the flag in sessionStorage and update state.
     sessionStorage.setItem(PROMO_BANNER_DISMISSED_KEY, 'true');
     setIsDismissed(true);
   };
+  
+  // If the banner is dismissed, render nothing.
+  if (isDismissed) {
+    return null;
+  }
 
   return (
     <AnimatePresence>

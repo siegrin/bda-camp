@@ -29,7 +29,14 @@ export async function generateMetadata(): Promise<Metadata> {
       template: `%s | BDA.Camp`,
     },
     description: "Penyewaan perlengkapan kemah yang terjangkau dan andal – Siap untuk setiap medan.",
-    // The 'icons' property is now removed to rely on the static /icon.tsx file
+    // The 'icons' property can be an object with different icon types.
+    // We provide a dynamic URL from settings. If it's null, Next.js will automatically
+    // look for a static file like /icon.tsx or /favicon.ico in the app directory.
+    icons: {
+      icon: settings.logo_url || undefined, // Dynamic icon URL
+      // You can also specify other icon types if needed, for example:
+      // apple: '/apple-icon.png',
+    }
   };
 }
 

@@ -442,18 +442,18 @@ export const logProductView = async (productId: number) => {
         const { data, error } = await supabase.from('analytics').select('*').single();
         if (error) throw error;
         
-        let analytics: AnalyticsData = data || { daily_visitors: [], top_products: [], weekly_summary: { total_revenue: 0, total_rentals: 0 } };
+        const analytics: AnalyticsData = data || { daily_visitors: [], top_products: [], weekly_summary: { total_revenue: 0, total_rentals: 0 } };
 
-        // Defensive check for daily_visitors array
-        if (!analytics.daily_visitors || !Array.isArray(analytics.daily_visitors) || analytics.daily_visitors.length !== 7) {
+        // Defensive check and initialization for daily_visitors
+        if (!analytics.daily_visitors || analytics.daily_visitors.length !== 7) {
             analytics.daily_visitors = Array(7).fill(null).map((_, i) => ({ day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][i], visitors: 0 }));
         }
 
         // Update daily visitors
         const dayIndex = new Date().getDay();
-        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Monday is 0, Sunday is 6
+        const adjustedIndex = dayIndex === 0 ? 6 : dayIndex - 1; // Sunday is 0, make it 6 for our array
         
-        // Ensure the object for the current day exists
+        // Ensure the day object exists
         if (!analytics.daily_visitors[adjustedIndex]) {
              analytics.daily_visitors[adjustedIndex] = { day: ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'][adjustedIndex], visitors: 0 };
         }
@@ -952,5 +952,3 @@ export async function getReportData(): Promise<{ success: boolean; message: stri
     
     return { success: true, message: "Report data generated", data: base64String };
 }
-
-
