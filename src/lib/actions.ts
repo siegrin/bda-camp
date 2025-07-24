@@ -99,7 +99,7 @@ async function getCurrentUser() {
 }
 
 
-export const registerUser = async (email: string, pass: string, displayName: string, username: string) => {
+export const registerUser = async (email: string, pass: string, displayName: string, username?: string) => {
     'use server';
     const ip = getIp();
     if (rateLimit(`register:${ip}`, 5, 60 * 1000 * 5)) { // 5 requests per 5 minutes
@@ -107,6 +107,9 @@ export const registerUser = async (email: string, pass: string, displayName: str
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
+
+    // Generate a random username if not provided
+    const finalUsername = username?.toLowerCase().trim() || `${displayName.toLowerCase().replace(/\s/g, '_')}${Math.floor(Math.random() * 9000) + 1000}`;
     
     // Call signUp with Supabase Admin to bypass email verification if needed
     // or use the regular client if verification is desired.
@@ -116,7 +119,7 @@ export const registerUser = async (email: string, pass: string, displayName: str
         email_confirm: true, // Auto-confirm email
         user_metadata: {
             display_name: displayName,
-            username: username.toLowerCase().trim(),
+            username: finalUsername,
             avatar_url: null,
         }
     });
@@ -136,7 +139,7 @@ export const registerUser = async (email: string, pass: string, displayName: str
         .from('profiles')
         .update({ 
             display_name: displayName,
-            username: username.toLowerCase().trim(),
+            username: finalUsername,
             role: 'user' // Explicitly set role
         })
         .eq('id', data.user.id);

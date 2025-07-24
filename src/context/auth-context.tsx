@@ -61,10 +61,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                  console.error("Error fetching profile, using default:", error?.message);
             }
            
+            const displayName = meta?.display_name || meta?.full_name || sessionUser.email?.split('@')[0] || 'Pengguna Baru';
+            const username = meta?.username || `${displayName.toLowerCase().replace(/\s/g, '_')}${Math.floor(Math.random() * 1000)}`;
+
             setUser({
                 uid: sessionUser.id,
-                username: meta?.username || '', 
-                displayName: meta?.display_name || meta?.full_name || sessionUser.email || '',
+                username: username,
+                displayName: displayName,
                 role: 'user', // Default role for new users or if profile is missing
                 email: sessionUser.email || null, 
                 photoURL: meta?.avatar_url || meta?.picture || null,
