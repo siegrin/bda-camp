@@ -133,9 +133,10 @@ Setelah deployment pertama selesai, Vercel akan memberikan Anda URL produksi. An
     ```
 4.  Klik **"Save"**.
 
-### 4. Mengaktifkan Login dengan Google (OAuth)
+---
+## Mengaktifkan Login dengan Google (OAuth)
 
-Untuk membuat tombol "Masuk dengan Google" berfungsi, ikuti panduan berikut dengan teliti. Kredensial OAuth disimpan di Supabase, bukan di file `.env` Anda.
+Untuk membuat tombol "Masuk dengan Google" berfungsi dengan baik dan menampilkan nama aplikasi Anda (bukan URL Supabase), ikuti panduan berikut dengan teliti.
 
 **Langkah 1: Dapatkan URL Callback dari Supabase**
 1.  Buka Dasbor Supabase Anda.
@@ -148,8 +149,16 @@ Untuk membuat tombol "Masuk dengan Google" berfungsi, ikuti panduan berikut deng
 2.  Buat proyek baru atau pilih yang sudah ada.
 3.  Di menu navigasi, buka **APIs & Services** -> **Credentials**.
 4.  Klik **+ CREATE CREDENTIALS** dan pilih **OAuth client ID**.
-5.  Jika diminta, konfigurasikan **OAuth consent screen** terlebih dahulu. Pilih tipe **External** dan isi informasi yang wajib (nama aplikasi, email, dll).
-6.  Setelah consent screen siap, kembali ke pembuatan Client ID:
+5.  Jika diminta, konfigurasikan **OAuth consent screen** terlebih dahulu. Ini adalah langkah paling penting.
+    -   Pilih tipe **External** dan klik **Create**.
+    -   **App name**: Masukkan nama aplikasi Anda (misal: "BDA.Camp"). Ini yang akan dilihat pengguna.
+    -   **User support email**: Pilih alamat email Anda.
+    -   **App logo**: Unggah logo aplikasi Anda.
+    -   **Authorized domains**: Klik **+ ADD DOMAIN** dan tambahkan domain **Vercel** Anda (contoh: `vercel.app` jika URL Anda `nama-proyek-anda.vercel.app`) dan `supabase.co`.
+    -   Isi email kontak developer. Klik **SAVE AND CONTINUE**.
+    -   Lewati bagian *Scopes* dan *Test users*. Klik **SAVE AND CONTINUE**.
+    -   Kembali ke *Dashboard* dan klik **PUBLISH APP** untuk membuat layar persetujuan Anda publik.
+6.  Kembali ke **APIs & Services** -> **Credentials** untuk melanjutkan pembuatan Client ID:
     -   **Application type**: Pilih **Web application**.
     -   **Authorized JavaScript origins**: Klik **+ ADD URI** dan masukkan URL Vercel aplikasi Anda (contoh: `https://nama-proyek-anda.vercel.app`).
     -   **Authorized redirect URIs**: Klik **+ ADD URI** dan tempel URL Callback yang sudah Anda salin dari Supabase.
@@ -158,8 +167,11 @@ Untuk membuat tombol "Masuk dengan Google" berfungsi, ikuti panduan berikut deng
 
 **Langkah 3: Simpan Kredensial di Supabase**
 1.  Kembali ke halaman provider Google di dasbor Supabase Anda.
-2.  Tempelkan **Client ID** yang sudah disalin ke kolom Client ID.
-3.  Tempelkan **Client Secret** yang sudah disalin ke kolom Client Secret.
-4.  Klik **Save**.
+2.  Pastikan toggle **Enabled** dalam keadaan aktif.
+3.  Tempelkan **Client ID** yang sudah disalin ke kolom Client ID.
+4.  Tempelkan **Client Secret** yang sudah disalin ke kolom Client Secret.
+5.  Klik **Save**.
 
-Setelah semua langkah ini selesai, fitur login dengan Google di aplikasi Vercel Anda akan berfungsi.
+Setelah semua langkah ini selesai, fitur login dengan Google di aplikasi Vercel Anda akan berfungsi dan menampilkan nama aplikasi Anda dengan benar.
+
+    

@@ -13,9 +13,6 @@ export function createClient() {
         get(name: string) {
           return cookieStore.get(name)?.value
         },
-        // No-op set/remove for server components as we are not using middleware
-        set(name: string, value: string, options: CookieOptions) {},
-        remove(name:string, options: CookieOptions) {},
       },
     }
   )

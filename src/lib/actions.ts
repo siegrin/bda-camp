@@ -512,7 +512,6 @@ export async function getSettings(): Promise<SiteSettings> {
         email: '', phone: '', address: '', whatsapp_number: '', 
         social: { twitter: '#', facebook: '#', instagram: '#' },
         logo_url: null,
-        logo_svg_content: null,
     };
     
     if (!data) return defaultSettings;
@@ -524,7 +523,7 @@ export async function getSettings(): Promise<SiteSettings> {
         whatsapp_number: data.whatsapp_number || '',
         social: data.social || { twitter: '#', facebook: '#', instagram: '#' },
         logo_url: data.logo_url || null,
-        logo_svg_content: data.logo_svg_content || null,
+        logo_svg_content: null,
     };
 }
 
@@ -540,7 +539,7 @@ export const updateSettings = adminAction(async (user, data: FormData): Promise<
         return { success: false, message: errorMessage };
     }
     
-    const settingsUpdate: Partial<SiteSettings> & { social_twitter?: any, social_facebook?: any, social_instagram?: any } = {
+    const settingsUpdate: Partial<Omit<SiteSettings, 'logo_svg_content'>> & { social_twitter?: any, social_facebook?: any, social_instagram?: any } = {
         ...validatedFields.data,
         social: {
             twitter: validatedFields.data.social_twitter,
@@ -554,25 +553,25 @@ export const updateSettings = adminAction(async (user, data: FormData): Promise<
     delete settingsUpdate.social_instagram;
 
     const logoImageFile = data.get('logo_new') as File | null;
-    const logoSvgContent = data.get('logo_svg_content') as string | null;
+    let newLogoUrl: string | null = null;
 
-    if (logoSvgContent) {
-        const sanitizedSvg = logoSvgContent.replace(/fill="[^"]*"/g, 'fill="currentColor"');
-        settingsUpdate.logo_svg_content = sanitizedSvg;
-        settingsUpdate.logo_url = null; // Clear image URL if SVG is uploaded
-    } else if (logoImageFile && logoImageFile.size > 0) {
-        settingsUpdate.logo_url = await uploadImage(logoImageFile, 'site-assets');
-        settingsUpdate.logo_svg_content = null; // Clear SVG content if image is uploaded
+    if (logoImageFile && logoImageFile.size > 0) {
+        newLogoUrl = await uploadImage(logoImageFile, 'site-assets');
+        settingsUpdate.logo_url = newLogoUrl;
     }
     
     const { error } = await supabase.from('settings').update(settingsUpdate).eq('id', 1);
 
-    if (error) return { success: false, message: `Gagal memperbarui pengaturan: ${error.message}` };
+    if (error) {
+        console.error("Supabase update error:", error);
+        return { success: false, message: `Gagal memperbarui pengaturan: ${error.message}` };
+    }
 
     await logActivity('Ubah Pengaturan', 'Pengaturan situs telah diperbarui.', user);
     
     revalidatePath('/dashboard/settings');
-    return { success: true, message: 'Pengaturan berhasil diperbarui.', data: { logo_url: settingsUpdate.logo_url, logo_svg_content: settingsUpdate.logo_svg_content } };
+    revalidatePath('/', 'layout');
+    return { success: true, message: 'Pengaturan berhasil diperbarui.', data: { logo_url: newLogoUrl } };
 });
 
 
@@ -1156,3 +1155,5 @@ export const createManualRental = adminAction(async (adminUser, userId: string, 
     revalidatePath('/dashboard/rentals');
     return { success: true, message: 'Pesanan manual berhasil dibuat.' };
 });
+
+    

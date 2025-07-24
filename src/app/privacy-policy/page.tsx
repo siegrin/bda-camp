@@ -8,7 +8,7 @@ const PrivacyPolicyPage = () => {
       <div className="flex flex-col items-center text-center mb-8">
         <Shield className="h-16 w-16 text-primary mb-4" />
         <h1 className="font-headline text-4xl font-bold tracking-tight md:text-5xl">Kebijakan Privasi</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Terakhir diperbarui: 1 Juli 2024</p>
+        <p className="mt-2 text-lg text-muted-foreground">Terakhir diperbarui: 1 Juli 2025</p>
       </div>
 
       <Card>

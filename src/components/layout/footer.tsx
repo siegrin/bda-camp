@@ -45,7 +45,6 @@ export function Footer({ settings }: { settings: SiteSettings }) {
               <li><Link href="/about" className="text-muted-foreground hover:text-primary">Cara Pesan</Link></li>
               <li><Link href="/contact" className="text-muted-foreground hover:text-primary">Hubungi Kami</Link></li>
               <li><Link href="/cart" className="text-muted-foreground hover:text-primary">Keranjang Saya</Link></li>
-              <li><Link href="/privacy-policy" className="text-muted-foreground hover:text-primary">Privacy Policy</Link></li>
             </ul>
           </div>
           <div>
@@ -66,8 +65,12 @@ export function Footer({ settings }: { settings: SiteSettings }) {
             <NewsletterForm />
           </div>
         </div>
-        <div className="mt-8 border-t pt-8 text-center text-muted-foreground">
+        <div className="mt-8 border-t pt-8 text-center text-muted-foreground text-sm space-y-2 md:flex md:justify-between md:items-center">
           <p>&copy; {new Date().getFullYear()} BDA.Camp. Hak cipta dilindungi.</p>
+           <div className="flex justify-center items-center gap-4">
+             <Link href="/privacy-policy" className="text-muted-foreground hover:text-primary">Kebijakan Privasi</Link>
+             <Link href="/terms-of-service" className="text-muted-foreground hover:text-primary">Syarat & Ketentuan</Link>
+           </div>
         </div>
       </div>
     </footer>

@@ -26,7 +26,6 @@ export default function SettingsPage() {
     
     // State for logo editing
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [logoSvgContent, setLogoSvgContent] = useState<string | null>(null);
     const [logoImageFile, setLogoImageFile] = useState<File | null>(null);
 
 
@@ -36,7 +35,6 @@ export default function SettingsPage() {
             const currentSettings = await getSettings();
             setSettings(currentSettings);
             setLogoPreview(currentSettings.logo_url);
-            setLogoSvgContent(currentSettings.logo_svg_content);
             setIsLoading(false);
         }
         loadSettings();
@@ -45,26 +43,14 @@ export default function SettingsPage() {
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
-
-            // Reset states
-            setLogoImageFile(null);
-            setLogoSvgContent(null);
-            setLogoPreview(null);
             
-            if (file.type === "image/svg+xml") {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setLogoSvgContent(reader.result as string);
-                };
-                reader.readAsText(file);
-            } else {
-                setLogoImageFile(file);
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setLogoPreview(reader.result as string);
-                };
-                reader.readAsDataURL(file);
-            }
+            setLogoImageFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setLogoPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+            
              e.target.value = ''; // Reset input so the same file can be chosen again
         }
     };
@@ -77,20 +63,17 @@ export default function SettingsPage() {
         startTransition(async () => {
             const formData = new FormData(event.currentTarget);
             
+            // This is the crucial fix: append the file from state to the form data
             if (logoImageFile) {
                 formData.append('logo_new', logoImageFile);
-            }
-            if (logoSvgContent) {
-                formData.append('logo_svg_content', logoSvgContent);
             }
             
             const result = await updateSettings(formData);
             if (result.success) {
                 toast({ title: "Sukses!", description: "Pengaturan berhasil diperbarui." });
-                if (result.data) {
-                    setLogoImageFile(null);
+                if (result.data?.logo_url) {
+                    setLogoImageFile(null); // Clear the file state after successful upload
                     setLogoPreview(result.data.logo_url);
-                    setLogoSvgContent(result.data.logo_svg_content);
                 }
             } else {
                 toast({ variant: "destructive", title: "Gagal", description: result.message });
@@ -117,7 +100,7 @@ export default function SettingsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Logo Situs</CardTitle>
-                        <CardDescription>Unggah logo (SVG untuk warna dinamis, atau PNG/JPG untuk gambar statis).</CardDescription>
+                        <CardDescription>Unggah logo situs Anda. Format yang diterima hanya PNG.</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
@@ -126,13 +109,13 @@ export default function SettingsPage() {
                                 <div className="mt-2 w-32 h-32 rounded-lg border flex items-center justify-center bg-muted/50 p-2">
                                      <AnimatePresence mode="wait">
                                         <motion.div
-                                            key={logoPreview || logoSvgContent || 'default'}
+                                            key={logoPreview || 'default'}
                                             initial={{ opacity: 0, scale: 0.8 }}
                                             animate={{ opacity: 1, scale: 1 }}
                                             exit={{ opacity: 0, scale: 0.8 }}
                                             transition={{ duration: 0.2 }}
                                         >
-                                            <Logo className="h-24 w-24 text-primary" logoUrl={logoPreview} logoSvgContent={logoSvgContent} />
+                                            <Logo className="h-24 w-24 text-primary" logoUrl={logoPreview} logoSvgContent={null} />
                                         </motion.div>
                                     </AnimatePresence>
                                 </div>
@@ -147,13 +130,13 @@ export default function SettingsPage() {
                                     )}>
                                         <UploadCloud className="h-8 w-8 text-muted-foreground" />
                                         <span className="text-sm font-semibold mt-1">Ganti Logo</span>
-                                        <span className="text-xs text-muted-foreground">SVG, PNG, JPG</span>
+                                        <span className="text-xs text-muted-foreground">Hanya PNG</span>
                                     </div>
                                 </Label>
                                  <Input
                                     id="logo-upload"
                                     type="file"
-                                    accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                                    accept="image/png"
                                     className="sr-only"
                                     onChange={handleFileChange}
                                     disabled={isPending}
