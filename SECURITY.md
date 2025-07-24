@@ -1,21 +1,28 @@
 # Security Policy
 
+The security of this project is a top priority. We appreciate your efforts to responsibly disclose your findings.
+
 ## Supported Versions
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+We are committed to providing security updates for the latest major version of the BDA.Camp application.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+| 1.x.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
-Use this section to tell people how to report a vulnerability.
+If you discover a security vulnerability, please help us by reporting it responsibly. We encourage you to report the issue privately.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+**Please do not report security vulnerabilities through public GitHub issues.**
+
+Instead, please send an email to [your-email@example.com](mailto:your-email@example.com) (replace with your actual email address).
+
+Please include the following information in your report:
+
+- A clear and concise description of the vulnerability.
+- The component or part of the application that is affected.
+- Steps to reproduce the vulnerability. This could include code snippets, screenshots, or a proof-of-concept.
+- The potential impact of the vulnerability.
+
+We will make our best effort to respond to your report within 48 hours and will keep you informed of the progress towards a fix and announcement. We appreciate your contribution to making this project more secure.
