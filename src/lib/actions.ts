@@ -512,6 +512,7 @@ export async function getSettings(): Promise<SiteSettings> {
         email: '', phone: '', address: '', whatsapp_number: '', 
         social: { twitter: '#', facebook: '#', instagram: '#' },
         logo_url: null,
+        logo_svg_content: null,
     };
     
     if (!data) return defaultSettings;
@@ -523,7 +524,7 @@ export async function getSettings(): Promise<SiteSettings> {
         whatsapp_number: data.whatsapp_number || '',
         social: data.social || { twitter: '#', facebook: '#', instagram: '#' },
         logo_url: data.logo_url || null,
-        logo_svg_content: null,
+        logo_svg_content: data.logo_svg_content || null,
     };
 }
 
@@ -539,7 +540,7 @@ export const updateSettings = adminAction(async (user, data: FormData): Promise<
         return { success: false, message: errorMessage };
     }
     
-    const settingsUpdate: Partial<Omit<SiteSettings, 'logo_svg_content'>> & { social_twitter?: any, social_facebook?: any, social_instagram?: any } = {
+    const settingsUpdate: Partial<SiteSettings> & { social_twitter?: any, social_facebook?: any, social_instagram?: any } = {
         ...validatedFields.data,
         social: {
             twitter: validatedFields.data.social_twitter,

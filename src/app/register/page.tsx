@@ -146,10 +146,10 @@ export default function RegisterPage() {
 
   // --- Initial Setup ---
   useEffect(() => {
-    if (!authLoading && user) {
-      router.replace("/profile");
+    if (user) {
+      router.push("/profile");
     }
-  }, [user, authLoading, router]);
+  }, [user, router]);
   
   // --- Form Submission ---
 
