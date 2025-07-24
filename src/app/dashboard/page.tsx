@@ -1,82 +1,18 @@
 
 'use client';
 
-import { useEffect, useState, useTransition } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { useEffect, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from '@/components/ui/button';
-import { Users, DollarSign, Activity, Package, Download, Loader2, LineChart, ListOrdered } from 'lucide-react';
+import { Users, DollarSign, Activity, Package, LineChart, ListOrdered } from 'lucide-react';
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { formatPrice } from '@/lib/utils';
 import type { AnalyticsData } from '@/lib/types';
 import { getAnalyticsData } from '@/lib/products';
-import { getReportData, resetAnalyticsData } from '@/lib/actions';
-import { useToast } from '@/hooks/use-toast';
 import { motion } from 'framer-motion';
 import { LoadingScreen } from '@/components/loading-screen';
+import { OverviewActions } from '@/components/dashboard/overview-actions';
 
-
-function ActionButtons({ onReset }: { onReset: () => void }) {
-    const { toast } = useToast();
-    const [isResetting, startResetTransition] = useTransition();
-    const [isDownloading, startDownloadTransition] = useTransition();
-
-    const handleReset = () => {
-        startResetTransition(async () => {
-            const result = await resetAnalyticsData();
-            if (result.success) {
-                toast({ title: "Sukses!", description: result.message });
-                onReset();
-            } else {
-                toast({ variant: "destructive", title: "Gagal", description: result.message });
-            }
-        });
-    };
-    
-    const handleDownloadReport = () => {
-        startDownloadTransition(async () => {
-            const result = await getReportData();
-            if (result.success && result.data) {
-                try {
-                    const byteCharacters = atob(result.data);
-                    const byteNumbers = new Array(byteCharacters.length);
-                    for (let i = 0; i < byteCharacters.length; i++) {
-                        byteNumbers[i] = byteCharacters.charCodeAt(i);
-                    }
-                    const byteArray = new Uint8Array(byteNumbers);
-                    const blob = new Blob([byteArray], { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" });
-
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `bdacamp_report_${new Date().toISOString().split('T')[0]}.docx`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                    toast({ title: "Sukses!", description: "Laporan berhasil diunduh." });
-                } catch (e) {
-                     toast({ variant: "destructive", title: "Gagal", description: "Gagal membuat file laporan Word." });
-                }
-            } else {
-                toast({ variant: "destructive", title: "Gagal", description: result.message || "Tidak dapat mengambil data laporan." });
-            }
-        });
-    };
-
-    return (
-        <div className="flex items-center gap-2">
-            <Button onClick={handleReset} disabled={isResetting} variant="outline" size="sm">
-                {isResetting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                Reset Data
-            </Button>
-            <Button onClick={handleDownloadReport} disabled={isDownloading} variant="outline" size="sm">
-                {isDownloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                Unduh Laporan
-            </Button>
-        </div>
-    );
-}
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -138,7 +74,7 @@ export default function DashboardOverviewPage() {
                         Ringkasan aktivitas, performa, dan unduh laporan lengkap situs Anda.
                     </p>
                 </div>
-                <ActionButtons onReset={loadData} />
+                <OverviewActions onReset={loadData} />
             </motion.div>
 
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

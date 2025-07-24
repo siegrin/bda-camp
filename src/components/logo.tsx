@@ -4,7 +4,22 @@
 import Image from "next/image";
 import { LogoIcon } from "@/components/icons";
 
-export function Logo({ className, logoUrl }: { className?: string, logoUrl?: string | null }) {
+interface LogoProps {
+  className?: string;
+  logoUrl?: string | null;
+  logoSvgContent?: string | null;
+}
+
+export function Logo({ className, logoUrl, logoSvgContent }: LogoProps) {
+  if (logoSvgContent) {
+    return (
+      <div
+        className={className}
+        dangerouslySetInnerHTML={{ __html: logoSvgContent }}
+      />
+    );
+  }
+  
   if (logoUrl) {
     return (
       <Image 
@@ -16,7 +31,7 @@ export function Logo({ className, logoUrl }: { className?: string, logoUrl?: str
         className={className}
         unoptimized // Necessary for external URLs if not configured in next.config.ts
       />
-    )
+    );
   }
   
   return <LogoIcon className={className} />;

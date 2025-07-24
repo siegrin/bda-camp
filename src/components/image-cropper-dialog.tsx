@@ -30,8 +30,8 @@ export function ImageCropperDialog({
   onOpenChange,
   imageSrc,
   onCropComplete,
-  aspectRatio = 3 / 2,
-  description = "Sesuaikan gambar agar pas. Gunakan slider untuk zoom."
+  aspectRatio = 1,
+  description = "Potong foto profil Anda menjadi bentuk persegi."
 }: ImageCropperDialogProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);

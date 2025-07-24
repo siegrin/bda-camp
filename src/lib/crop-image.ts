@@ -43,7 +43,7 @@ export function getCroppedImg(
         reader.onerror = (error) => {
             reject(error);
         }
-      }, "image/png");
+      }, "image/jpeg", 0.9);
     };
     image.onerror = (error) => {
         reject(error);

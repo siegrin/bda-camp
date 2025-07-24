@@ -5,7 +5,6 @@ import { MainLayout } from "@/components/layout/main-layout";
 import { getSettings } from "@/lib/actions";
 import type { SiteSettings } from "@/lib/types";
 import { Providers } from "@/context/providers";
-import Script from "next/script";
 import "./globals.css";
 
 // Use generateMetadata to dynamically set page metadata, including the favicon
@@ -57,13 +56,6 @@ export default async function RootLayout({
           <MainLayout settings={settings}>{children}</MainLayout>
         </Providers>
         <Toaster />
-        <Script 
-          src="//madurird.com/tag.min.js" 
-          data-zone="9608763" 
-          data-cfasync="false" 
-          async 
-          strategy="lazyOnload" 
-        />
       </body>
     </html>
   );

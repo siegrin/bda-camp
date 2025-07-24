@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, CheckCircle, XCircle, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { updateUserProfile } from '@/lib/actions';
 import { createClient } from '@/lib/supabase/client';
@@ -50,9 +50,13 @@ export default function ProfileSettingsPage() {
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [username, setUsername] = useState(user?.username || '');
   
+  // Password state
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
 
   // State for profile picture
   const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.photoURL || null);
@@ -72,6 +76,22 @@ export default function ProfileSettingsPage() {
         setAvatarPreview(user.photoURL || null);
     }
   }, [user]);
+  
+   useEffect(() => {
+        if (!newPassword && !confirmPassword) {
+            setPasswordError("");
+            return;
+        }
+        if (newPassword.includes(' ')) {
+            setPasswordError("Kata sandi baru tidak boleh mengandung spasi.");
+        } else if (newPassword.length > 0 && newPassword.length < 6) {
+            setPasswordError('Kata sandi baru harus minimal 6 karakter.');
+        } else if (newPassword && confirmPassword && newPassword !== confirmPassword) {
+            setPasswordError('Kata sandi baru tidak cocok.');
+        } else {
+            setPasswordError('');
+        }
+    }, [newPassword, confirmPassword]);
 
   const checkUsernameAvailability = useCallback(async (name: string) => {
     if (!user || name === user.username) {
@@ -96,8 +116,14 @@ export default function ProfileSettingsPage() {
         if (error && error.code !== 'PGRST116') throw error;
         
         setUsernameStatus(data ? 'unavailable' : 'available');
+        if (data) {
+             setUsernameError('Username ini sudah digunakan.');
+        } else {
+             setUsernameError('');
+        }
     } catch (error) {
         setUsernameStatus('error');
+        setUsernameError('Gagal memeriksa username.');
         console.error("Error checking username", error);
     }
   }, [supabase, user]);
@@ -158,7 +184,7 @@ export default function ProfileSettingsPage() {
     fetch(newCroppedAvatar)
       .then(res => res.blob())
       .then(blob => {
-        const file = new File([blob], "avatar.png", { type: "image/png" });
+        const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
         setCroppedAvatarFile(file);
       });
     setCropperOpen(false);
@@ -166,19 +192,8 @@ export default function ProfileSettingsPage() {
 
   const handlePasswordSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (newPassword.includes(' ')) {
-      setPasswordError("Kata sandi baru tidak boleh mengandung spasi.");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setPasswordError('Kata sandi baru tidak cocok.');
-      return;
-    }
-    if (newPassword.length < 6) {
-        setPasswordError('Kata sandi baru harus minimal 6 karakter.');
-        return;
-    }
-    setPasswordError('');
+    if (passwordError) return;
+
     startPasswordTransition(async () => {
       const { error } = await supabase.auth.updateUser({ password: newPassword });
 
@@ -224,7 +239,7 @@ export default function ProfileSettingsPage() {
                             id="avatar-upload" 
                             type="file" 
                             className="sr-only" 
-                            accept="image/png, image/jpeg, image/webp" 
+                            accept="image/jpeg, image/png, image/webp" 
                             onChange={handleFileChange}
                             disabled={isProfilePending}
                         />
@@ -253,10 +268,10 @@ export default function ProfileSettingsPage() {
                     onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))} 
                     disabled={isProfilePending}
                 />
-                 <AvailabilityStatus status={usernameStatus} message={usernameError || 'Username ini sudah digunakan'} />
+                 <AvailabilityStatus status={usernameStatus} message={usernameError} />
               </div>
               <div className="flex justify-end">
-                <Button type="submit" disabled={isProfilePending || isProfileFormUnchanged || usernameStatus === 'unavailable'}>
+                <Button type="submit" disabled={isProfilePending || isProfileFormUnchanged || usernameStatus === 'unavailable' || usernameStatus === 'error'}>
                   {isProfilePending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Simpan Perubahan Profil
                 </Button>
@@ -268,35 +283,61 @@ export default function ProfileSettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Ubah Kata Sandi</CardTitle>
-            <CardDescription>Pastikan untuk menggunakan kata sandi yang kuat.</CardDescription>
+            <CardDescription>Pastikan untuk menggunakan kata sandi yang kuat dan unik.</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="newPassword">Kata Sandi Baru</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  disabled={isPasswordPending}
-                  required
-                />
+                 <div className="relative">
+                    <Input
+                      id="newPassword"
+                      type={showNewPassword ? "text" : "password"}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={isPasswordPending}
+                      required
+                      className="pr-10"
+                    />
+                     <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        aria-label={showNewPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                 </div>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirmPassword">Konfirmasi Kata Sandi Baru</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={isPasswordPending}
-                  required
-                />
+                <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? "text" : "password"}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={isPasswordPending}
+                      required
+                       className="pr-10"
+                    />
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        aria-label={showConfirmPassword ? "Sembunyikan kata sandi" : "Tampilkan kata sandi"}
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                </div>
               </div>
               {passwordError && <p className="text-sm text-destructive">{passwordError}</p>}
               <div className="flex justify-end">
-                <Button type="submit" disabled={isPasswordPending || !newPassword}>
+                <Button type="submit" disabled={isPasswordPending || !!passwordError || !newPassword}>
                   {isPasswordPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Ubah Kata Sandi
                 </Button>
@@ -317,5 +358,3 @@ export default function ProfileSettingsPage() {
     </>
   );
 }
-
-    

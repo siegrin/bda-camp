@@ -13,9 +13,9 @@ import { Loader2, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LoadingScreen } from "@/components/loading-screen";
 
-const generateWhatsAppMessage = (cart: CartItem[], total: number) => {
+const generateWhatsAppMessage = (items: CartItem[], total: number) => {
     let message = "Halo, saya ingin menyewa peralatan berikut:\n\n";
-    cart.forEach(item => {
+    items.forEach(item => {
         message += `- ${item.name} (${item.quantity} unit, ${item.days} hari)\n`;
     });
     message += `\n*Total: ${formatPrice(total)}*\n\n`;
@@ -25,17 +25,17 @@ const generateWhatsAppMessage = (cart: CartItem[], total: number) => {
 
 
 export default function CheckoutPage() {
-    const { cart, total, clearCart } = useCart();
+    const { selectedItems, selectedItemsTotal, clearCart } = useCart();
     const router = useRouter();
     const [isLoading, setIsLoading] = useState(false);
     const [settings, setSettings] = useState<SiteSettings | null>(null);
     const [isSettingsLoading, setSettingsLoading] = useState(true);
 
     useEffect(() => {
-        if (!isSettingsLoading && cart.length === 0) {
+        if (!isSettingsLoading && selectedItems.length === 0) {
             router.replace('/cart');
         }
-    }, [cart.length, router, isSettingsLoading]);
+    }, [selectedItems.length, router, isSettingsLoading]);
     
     useEffect(() => {
         async function loadSettings() {
@@ -54,7 +54,7 @@ export default function CheckoutPage() {
         }
         setIsLoading(true);
 
-        const result = await logRentalCheckout(cart);
+        const result = await logRentalCheckout(selectedItems);
 
         if (!result.success) {
             alert("Gagal membuat pesanan. Silakan coba lagi.");
@@ -62,13 +62,12 @@ export default function CheckoutPage() {
             return;
         }
 
-        const message = generateWhatsAppMessage(cart, total);
+        const message = generateWhatsAppMessage(selectedItems, selectedItemsTotal);
         const whatsappUrl = `https://wa.me/${settings.whatsapp_number}?text=${message}`;
         
-        // Open WhatsApp first to ensure it's not blocked
         window.open(whatsappUrl, '_blank');
 
-        // Then, clear the cart and navigate
+        // This will now only remove the items that were just checked out.
         clearCart();
         router.push('/profile');
     };
@@ -77,10 +76,10 @@ export default function CheckoutPage() {
         return <LoadingScreen message="Memuat informasi checkout..." />;
     }
     
-    if (cart.length === 0) {
+    if (selectedItems.length === 0) {
          return (
             <div className="container mx-auto flex min-h-[60vh] items-center justify-center">
-                <p>Keranjang kosong, mengarahkan kembali...</p>
+                <p>Tidak ada item dipilih, mengarahkan kembali ke keranjang...</p>
             </div>
         );
     }
@@ -118,7 +117,7 @@ export default function CheckoutPage() {
           <p className="text-muted-foreground">
             Anda akan diarahkan ke WhatsApp untuk menyelesaikan pesanan Anda langsung dengan admin kami.
           </p>
-          <p className="mt-4 font-bold text-lg">Total Pembayaran: {formatPrice(total)}</p>
+          <p className="mt-4 font-bold text-lg">Total Pembayaran: {formatPrice(selectedItemsTotal)}</p>
           
            <Button size="lg" className="mt-6 w-full" onClick={handleCheckout} disabled={isLoading}>
                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

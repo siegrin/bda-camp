@@ -17,10 +17,10 @@ import { DeleteProductDialog } from './delete-product-dialog';
 
 interface ProductCardProps {
   product: Product;
-  onActionComplete: () => void;
+  onActionComplete?: () => void;
 }
 
-export function ProductCard({ product, onActionComplete }: ProductCardProps) {
+export function ProductCard({ product, onActionComplete = () => {} }: ProductCardProps) {
   const imageUrl = product.images?.[0] || 'https://placehold.co/600x400.png';
   const { user } = useAuth();
   const [isFormDialogOpen, setFormDialogOpen] = useState(false);
@@ -37,15 +37,15 @@ export function ProductCard({ product, onActionComplete }: ProductCardProps) {
       <Card className="group flex flex-col overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full">
         <CardHeader className="p-0">
           <div className="relative">
-            <Link href={`/equipment/${product.id}`}>
-              <div className="absolute top-2 right-2 z-10 space-y-1 text-right">
+            <Link href={`/equipment/${product.id}`} className={isAdmin ? 'pointer-events-none' : ''}>
+              <div className="absolute top-2 right-2 z-10 flex flex-col items-end gap-1">
                  <Badge
                     variant={product.availability === 'Tersedia' ? 'default' : 'destructive'}
                     className="w-fit"
                   >
                     {product.availability}
                   </Badge>
-                   {product.stock < 5 && product.availability === 'Tersedia' && (
+                   {product.availability === 'Tersedia' && (
                      <Badge variant="secondary" className="w-fit">Stok: {product.stock}</Badge>
                   )}
               </div>
@@ -64,7 +64,7 @@ export function ProductCard({ product, onActionComplete }: ProductCardProps) {
           </div>
         </CardHeader>
         <CardContent className="p-4 flex-grow">
-          <Link href={`/equipment/${product.id}`} className="hover:text-primary">
+          <Link href={`/equipment/${product.id}`} className={cn("hover:text-primary", isAdmin ? 'pointer-events-none' : '')}>
             <h3 className="text-base md:text-lg font-bold font-headline leading-tight truncate" title={product.name}>
               {product.name}
             </h3>
@@ -76,20 +76,22 @@ export function ProductCard({ product, onActionComplete }: ProductCardProps) {
         <CardFooter className="p-4 pt-0 mt-auto">
           {isAdmin ? (
              <div className="w-full flex items-center justify-end gap-2">
-                <Button variant="outline" size="icon" className="h-8 w-8 md:w-auto md:px-4 md:py-2" onClick={() => setFormDialogOpen(true)}>
+                <Button variant="outline" size="sm" onClick={() => setFormDialogOpen(true)}>
                     <Pencil className="h-4 w-4 md:mr-2" />
                     <span className="hidden md:inline">Edit</span>
                 </Button>
                 <DeleteProductDialog product={product} onDeleted={handleActionFinished}>
-                    <Button variant="destructive" size="icon" className="h-8 w-8 md:w-auto md:px-4 md:py-2">
+                    <Button variant="destructive" size="sm">
                         <Trash2 className="h-4 w-4 md:mr-2" />
                         <span className="hidden md:inline">Hapus</span>
                     </Button>
                 </DeleteProductDialog>
              </div>
           ) : (
-             <Button asChild className="w-full">
-                <Link href={`/equipment/${product.id}`}>Lihat Detail</Link>
+             <Button asChild className="w-full" disabled={product.stock === 0}>
+                <Link href={`/equipment/${product.id}`}>
+                    {product.stock === 0 ? 'Stok Habis' : 'Lihat Detail'}
+                </Link>
             </Button>
           )}
         </CardFooter>

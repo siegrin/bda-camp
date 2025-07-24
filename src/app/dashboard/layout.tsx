@@ -125,7 +125,7 @@ export default function DashboardLayout({
               href="/"
               className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
             >
-              <Logo className="h-5 w-5 transition-all group-hover:scale-110" logoUrl={settings.logo_url} />
+              <Logo className="h-5 w-5 transition-all group-hover:scale-110" logoUrl={settings.logo_url} logoSvgContent={settings.logo_svg_content} />
               <span className="sr-only">BDA.Camp</span>
             </Link>
             {navItems.map((item) => (
@@ -188,7 +188,7 @@ export default function DashboardLayout({
                   className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
                    onClick={() => setSheetOpen(false)}
                 >
-                  <Logo className="h-6 w-6 transition-all group-hover:scale-110" logoUrl={settings.logo_url} />
+                  <Logo className="h-6 w-6 transition-all group-hover:scale-110" logoUrl={settings.logo_url} logoSvgContent={settings.logo_svg_content}/>
                   <span className="sr-only">BDA.Camp</span>
                 </Link>
                 {navItems.map((item) => (

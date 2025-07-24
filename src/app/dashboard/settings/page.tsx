@@ -7,30 +7,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, Settings, Save } from 'lucide-react';
+import { Loader2, Settings, Save, UploadCloud } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { getSettings, updateSettings } from '@/lib/actions';
 import type { SiteSettings } from '@/lib/types';
 import { LogoIcon } from '@/components/icons';
-import { ImageCropperDialog } from '@/components/image-cropper-dialog';
 import { LoadingScreen } from '@/components/loading-screen';
+import { cn } from '@/lib/utils';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Logo } from '@/components/logo';
 
-function LogoPreview({ logoUrl }: { logoUrl?: string | null }) {
-  if (logoUrl) {
-    return (
-      <Image 
-        src={logoUrl} 
-        alt="Logo Preview" 
-        width={100} 
-        height={100} 
-        className="h-24 w-24 object-contain rounded-md"
-        unoptimized
-      />
-    );
-  }
-  
-  return <LogoIcon className="h-20 w-20 text-muted-foreground/50" />;
-}
 
 export default function SettingsPage() {
     const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -40,9 +26,8 @@ export default function SettingsPage() {
     
     // State for logo editing
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
-    const [logoToCrop, setLogoToCrop] = useState<string | null>(null);
-    const [isCropperOpen, setCropperOpen] = useState(false);
-    const [croppedLogoFile, setCroppedLogoFile] = useState<File | null>(null);
+    const [logoSvgContent, setLogoSvgContent] = useState<string | null>(null);
+    const [logoImageFile, setLogoImageFile] = useState<File | null>(null);
 
 
     useEffect(() => {
@@ -51,6 +36,7 @@ export default function SettingsPage() {
             const currentSettings = await getSettings();
             setSettings(currentSettings);
             setLogoPreview(currentSettings.logo_url);
+            setLogoSvgContent(currentSettings.logo_svg_content);
             setIsLoading(false);
         }
         loadSettings();
@@ -59,27 +45,28 @@ export default function SettingsPage() {
     const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
             const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                if (typeof reader.result === 'string') {
-                    setLogoToCrop(reader.result);
-                    setCropperOpen(true);
-                }
-            };
-            reader.readAsDataURL(file);
-            e.target.value = ''; // Reset input so the same file can be chosen again
-        }
-    };
 
-    const handleCropComplete = (newCroppedLogo: string) => {
-        setLogoPreview(newCroppedLogo); // Update preview immediately
-        fetch(newCroppedLogo)
-          .then(res => res.blob())
-          .then(blob => {
-            const file = new File([blob], "logo.png", { type: "image/png" });
-            setCroppedLogoFile(file);
-          });
-        setCropperOpen(false);
+            // Reset states
+            setLogoImageFile(null);
+            setLogoSvgContent(null);
+            setLogoPreview(null);
+            
+            if (file.type === "image/svg+xml") {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setLogoSvgContent(reader.result as string);
+                };
+                reader.readAsText(file);
+            } else {
+                setLogoImageFile(file);
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setLogoPreview(reader.result as string);
+                };
+                reader.readAsDataURL(file);
+            }
+             e.target.value = ''; // Reset input so the same file can be chosen again
+        }
     };
 
 
@@ -89,14 +76,22 @@ export default function SettingsPage() {
 
         startTransition(async () => {
             const formData = new FormData(event.currentTarget);
-            if (croppedLogoFile) {
-                formData.append('logo_new', croppedLogoFile);
+            
+            if (logoImageFile) {
+                formData.append('logo_new', logoImageFile);
             }
-            formData.append('logo_url_existing', logoPreview || '');
+            if (logoSvgContent) {
+                formData.append('logo_svg_content', logoSvgContent);
+            }
             
             const result = await updateSettings(formData);
             if (result.success) {
                 toast({ title: "Sukses!", description: "Pengaturan berhasil diperbarui." });
+                if (result.data) {
+                    setLogoImageFile(null);
+                    setLogoPreview(result.data.logo_url);
+                    setLogoSvgContent(result.data.logo_svg_content);
+                }
             } else {
                 toast({ variant: "destructive", title: "Gagal", description: result.message });
             }
@@ -122,32 +117,49 @@ export default function SettingsPage() {
                 <Card>
                     <CardHeader>
                         <CardTitle>Logo Situs</CardTitle>
-                        <CardDescription>Unggah dan potong logo untuk ditampilkan di header.</CardDescription>
+                        <CardDescription>Unggah logo (SVG untuk warna dinamis, atau PNG/JPG untuk gambar statis).</CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <Label>Pratinjau Logo</Label>
-                            <div className="w-24 h-24 rounded-lg border flex items-center justify-center bg-muted/50 p-1">
-                                <LogoPreview logoUrl={logoPreview} />
+                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 items-center">
+                            <div>
+                                <Label>Pratinjau Logo</Label>
+                                <div className="mt-2 w-32 h-32 rounded-lg border flex items-center justify-center bg-muted/50 p-2">
+                                     <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={logoPreview || logoSvgContent || 'default'}
+                                            initial={{ opacity: 0, scale: 0.8 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0.8 }}
+                                            transition={{ duration: 0.2 }}
+                                        >
+                                            <Logo className="h-24 w-24 text-primary" logoUrl={logoPreview} logoSvgContent={logoSvgContent} />
+                                        </motion.div>
+                                    </AnimatePresence>
+                                </div>
                             </div>
-                        </div>
-                        <div className="space-y-2">
-                            <Label 
-                                htmlFor="logo-upload" 
-                                className="inline-block cursor-pointer rounded-md bg-secondary px-4 py-2 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-                            >
-                                Ganti Logo
-                            </Label>
-                             <Input
-                                id="logo-upload"
-                                type="file"
-                                accept="image/png, image/jpeg, image/webp"
-                                className="sr-only"
-                                onChange={handleFileChange}
-                                disabled={isPending}
-                            />
-                            <p className="text-xs text-muted-foreground">Rekomendasi ukuran persegi (1:1).</p>
-                        </div>
+                            <div className="space-y-2">
+                                <Label 
+                                    htmlFor="logo-upload" 
+                                >
+                                    <div className={cn(
+                                        "flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer",
+                                        "hover:border-primary hover:bg-accent transition-colors"
+                                    )}>
+                                        <UploadCloud className="h-8 w-8 text-muted-foreground" />
+                                        <span className="text-sm font-semibold mt-1">Ganti Logo</span>
+                                        <span className="text-xs text-muted-foreground">SVG, PNG, JPG</span>
+                                    </div>
+                                </Label>
+                                 <Input
+                                    id="logo-upload"
+                                    type="file"
+                                    accept="image/png, image/jpeg, image/webp, image/svg+xml"
+                                    className="sr-only"
+                                    onChange={handleFileChange}
+                                    disabled={isPending}
+                                />
+                            </div>
+                       </div>
                     </CardContent>
                 </Card>
                 <Card className="mt-4">
@@ -203,15 +215,6 @@ export default function SettingsPage() {
                     </Button>
                 </div>
             </form>
-            
-             <ImageCropperDialog
-                isOpen={isCropperOpen}
-                onOpenChange={setCropperOpen}
-                imageSrc={logoToCrop}
-                onCropComplete={handleCropComplete}
-                aspectRatio={1}
-                description="Rekomendasi ukuran persegi (1:1)."
-            />
         </div>
     );
 }

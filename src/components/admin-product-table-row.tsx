@@ -37,12 +37,17 @@ export function AdminProductTableRow({ product, onEdit, onDeleted }: { product: 
             <TableCell className="hidden sm:table-cell">
                 <Badge variant="outline">{product.category}</Badge>
             </TableCell>
-            <TableCell className="hidden lg:table-cell">{formatPrice(product.price_per_day)}</TableCell>
+            <TableCell className="hidden lg:table-cell">
+                <div className="font-medium">{formatPrice(product.price_per_day)}</div>
+                <div className="text-xs text-muted-foreground">per hari</div>
+            </TableCell>
             <TableCell className="hidden sm:table-cell">
                 <Badge variant={product.availability === 'Tersedia' ? 'default' : 'destructive'}>
                     {product.availability}
                 </Badge>
-                <p className="text-xs text-muted-foreground">Stok: {product.stock}</p>
+            </TableCell>
+            <TableCell className="hidden lg:table-cell">
+                {product.stock}
             </TableCell>
             <TableCell className="text-right">
                 <Button variant="ghost" size="icon" onClick={onEdit}>

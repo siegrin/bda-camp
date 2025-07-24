@@ -8,7 +8,6 @@ import { ProductFormDialog } from '@/components/product-form-dialog';
 import { DeleteProductDialog } from '@/components/delete-product-dialog';
 import { Button } from '@/components/ui/button';
 import type { Product } from "@/lib/types";
-import { getProductById } from '@/lib/products';
 
 export function AdminToolbar({ product }: { product: Product }) {
     const [isFormOpen, setFormOpen] = useState(false);
@@ -17,6 +16,7 @@ export function AdminToolbar({ product }: { product: Product }) {
     const handleActionComplete = async () => {
         // After editing, we just need to refresh the page to get new data
         router.refresh();
+        setFormOpen(false);
     }
     
     const handleProductDeleted = () => {
@@ -48,10 +48,7 @@ export function AdminToolbar({ product }: { product: Product }) {
                 isOpen={isFormOpen}
                 onOpenChange={setFormOpen}
                 product={product}
-                onFinished={() => {
-                    setFormOpen(false);
-                    handleActionComplete();
-                }}
+                onFinished={handleActionComplete}
             />
         </>
     );

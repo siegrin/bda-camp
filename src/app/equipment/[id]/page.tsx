@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatPrice } from "@/lib/utils";
 import { getProductById } from "@/lib/products";
-import { AddToCartForm } from "./add-to-cart-form";
+import { AddToCartForm } from "@/components/add-to-cart-form";
 import { Breadcrumb } from "@/components/breadcrumb";
 import { ProductViewTracker } from "./product-view-tracker";
 import { ProductGallery } from "./product-gallery";

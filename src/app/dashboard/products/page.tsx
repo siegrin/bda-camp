@@ -112,8 +112,9 @@ export default function ProductsPage() {
                         <TableHead className="w-[80px]">Gambar</TableHead>
                         <TableHead>Nama</TableHead>
                         <TableHead className="hidden sm:table-cell">Kategori</TableHead>
-                        <TableHead className="hidden lg:table-cell">Harga/Hari</TableHead>
+                        <TableHead className="hidden lg:table-cell">Harga</TableHead>
                         <TableHead className="hidden sm:table-cell">Status</TableHead>
+                        <TableHead className="hidden lg:table-cell">Stok</TableHead>
                         <TableHead className="text-right">Aksi</TableHead>
                         </TableRow>
                     </TableHeader>
@@ -128,7 +129,7 @@ export default function ProductsPage() {
                         ))}
                          {filteredProducts.length === 0 && (
                              <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
+                                <TableCell colSpan={7} className="h-24 text-center">
                                     Tidak ada produk yang cocok dengan pencarian Anda.
                                 </TableCell>
                             </TableRow>

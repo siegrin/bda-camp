@@ -193,7 +193,7 @@ async function logActivity(action: string, details: string, user?: MockUser | nu
     const { error } = await supabase
         .from('activity_log')
         .insert({
-            user_name: currentUser?.displayName || 'Pengunjung',
+            user_name: currentUser?.displayName || 'Sistem',
             action,
             details,
         });
@@ -245,6 +245,11 @@ async function uploadImage(file: File, bucket: 'product-images' | 'site-assets',
     
     const { data } = supabase.storage.from(bucket).getPublicUrl(filePath);
     return data.publicUrl;
+}
+
+function getPathFromUrl(url: string, bucket: string): string {
+    const prefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${bucket}/`;
+    return url.replace(prefix, '');
 }
 
 async function parseAndSaveProductImages(data: FormData): Promise<{ images: string[]; specs: Record<string, string> }> {
@@ -348,7 +353,7 @@ export const updateProduct = adminAction(async (user, id: number, data: FormData
     const imagesToDelete = oldImages.filter(img => !newImages.includes(img));
     
     if (imagesToDelete.length > 0) {
-        const filePaths = imagesToDelete.map(url => url.substring(url.lastIndexOf('/product-images/') + '/product-images/'.length));
+        const filePaths = imagesToDelete.map(url => getPathFromUrl(url, 'product-images'));
         const { error: deleteError } = await supabase.storage.from('product-images').remove(filePaths);
         if (deleteError) {
             console.error("Gagal menghapus beberapa gambar lama di storage:", deleteError.message);
@@ -383,7 +388,7 @@ export const deleteProduct = adminAction(async (user, id: number) => {
     if (error) return { success: false, message: `Gagal menghapus produk: ${error.message}` };
     
     if (productToDelete.images && productToDelete.images.length > 0) {
-        const filePaths = productToDelete.images.map(url => url.substring(url.lastIndexOf('/product-images/') + '/product-images/'.length));
+        const filePaths = productToDelete.images.map(url => getPathFromUrl(url, 'product-images'));
         const { error: deleteError } = await supabase.storage.from('product-images').remove(filePaths);
         if (deleteError) {
              console.error("Gagal menghapus gambar produk di storage:", deleteError.message);
@@ -502,6 +507,7 @@ export async function getSettings(): Promise<SiteSettings> {
         email: '', phone: '', address: '', whatsapp_number: '', 
         social: { twitter: '#', facebook: '#', instagram: '#' },
         logo_url: null,
+        logo_svg_content: null,
     };
     
     if (!data) return defaultSettings;
@@ -512,12 +518,13 @@ export async function getSettings(): Promise<SiteSettings> {
         address: data.address || '',
         whatsapp_number: data.whatsapp_number || '',
         social: data.social || { twitter: '#', facebook: '#', instagram: '#' },
-        logo_url: data.logo_url || null
+        logo_url: data.logo_url || null,
+        logo_svg_content: data.logo_svg_content || null,
     };
 }
 
 
-export const updateSettings = adminAction(async (user, data: FormData) => {
+export const updateSettings = adminAction(async (user, data: FormData): Promise<{success: boolean; message: string; data?: Partial<SiteSettings>}> => {
     const supabase = createSupabaseAdminClient();
     const formDataObj = Object.fromEntries(data.entries());
 
@@ -528,32 +535,41 @@ export const updateSettings = adminAction(async (user, data: FormData) => {
         return { success: false, message: errorMessage };
     }
     
-    let newLogoUrl = formDataObj.logo_url_existing as string || null;
-    const logoFile = data.get('logo_new') as File | null;
-    if (logoFile && logoFile.size > 0) {
-        newLogoUrl = await uploadImage(logoFile, 'site-assets');
-    }
-
-    const { error } = await supabase.from('settings').update({
-        email: validatedFields.data.email,
-        phone: validatedFields.data.phone,
-        address: validatedFields.data.address,
-        whatsapp_number: validatedFields.data.whatsapp_number,
+    const settingsUpdate: Partial<SiteSettings> & { social_twitter?: any, social_facebook?: any, social_instagram?: any } = {
+        ...validatedFields.data,
         social: {
             twitter: validatedFields.data.social_twitter,
             facebook: validatedFields.data.social_facebook,
             instagram: validatedFields.data.social_instagram,
         },
-        logo_url: newLogoUrl
-    }).eq('id', 1);
+    };
+    
+    delete settingsUpdate.social_twitter;
+    delete settingsUpdate.social_facebook;
+    delete settingsUpdate.social_instagram;
+
+    const logoImageFile = data.get('logo_new') as File | null;
+    const logoSvgContent = data.get('logo_svg_content') as string | null;
+
+    if (logoSvgContent) {
+        const sanitizedSvg = logoSvgContent.replace(/fill="[^"]*"/g, 'fill="currentColor"');
+        settingsUpdate.logo_svg_content = sanitizedSvg;
+        settingsUpdate.logo_url = null; // Clear image URL if SVG is uploaded
+    } else if (logoImageFile && logoImageFile.size > 0) {
+        settingsUpdate.logo_url = await uploadImage(logoImageFile, 'site-assets');
+        settingsUpdate.logo_svg_content = null; // Clear SVG content if image is uploaded
+    }
+    
+    const { error } = await supabase.from('settings').update(settingsUpdate).eq('id', 1);
 
     if (error) return { success: false, message: `Gagal memperbarui pengaturan: ${error.message}` };
 
     await logActivity('Ubah Pengaturan', 'Pengaturan situs telah diperbarui.', user);
     
-    revalidatePath('/', 'layout');
-    return { success: true, message: 'Pengaturan berhasil diperbarui.' };
+    revalidatePath('/dashboard/settings');
+    return { success: true, message: 'Pengaturan berhasil diperbarui.', data: { logo_url: settingsUpdate.logo_url, logo_svg_content: settingsUpdate.logo_svg_content } };
 });
+
 
 export const addCategory = adminAction(async (user, data: FormData) => {
     const supabase = createClientForActions();
@@ -714,60 +730,92 @@ export const deleteUser = adminAction(async(user, userIdToDelete: string) => {
 });
 
 export const updateUserProfile = userAction(async (user, formData: FormData): Promise<{ success: boolean; message:string; data?: MockUser }> => {
-    const ip = getIp();
-    if (rateLimit(`updateProfile:${user.uid}:${ip}`, 10, 60 * 1000 * 5)) { // 10 requests per 5 minutes
-        return { success: false, message: 'Terlalu banyak percobaan. Harap tunggu beberapa saat.' };
-    }
-    
-    const supabase = createClientForActions();
+    const supabaseAdmin = createSupabaseAdminClient();
     
     const displayName = formData.get('displayName') as string;
     const username = formData.get('username') as string;
     const avatarFile = formData.get('avatar_new') as File | null;
     
-    let avatarUrl: string | undefined = undefined;
-
-    // Upload new avatar if provided
-    if (avatarFile && avatarFile.size > 0) {
-        // Use user's UID to create a folder for their assets, enhancing security & organization
-        const pathPrefix = `${user.uid}/`;
-        avatarUrl = await uploadImage(avatarFile, 'site-assets', pathPrefix);
-    }
-    
-    // Update profile in 'profiles' table
-    const { data: profileData, error: profileError } = await supabase
+    // --- Step 1: Fetch current profile to get old avatar URL ---
+    const { data: currentProfile, error: fetchError } = await supabaseAdmin
         .from('profiles')
-        .update({ 
-            display_name: displayName,
-            username: username.toLowerCase(),
-            ...(avatarUrl && { avatar_url: avatarUrl })
-        })
+        .select('avatar_url')
+        .eq('id', user.uid)
+        .single();
+    
+    if (fetchError) {
+        return { success: false, message: `Gagal mengambil profil saat ini: ${fetchError.message}` };
+    }
+    const oldAvatarUrl = currentProfile?.avatar_url;
+
+    // --- Step 2: Prepare updates for profiles and auth metadata ---
+    const updates: {
+        display_name: string;
+        username: string;
+        avatar_url?: string | null;
+    } = {
+        display_name: displayName,
+        username: username.toLowerCase(),
+    };
+    
+    let newAvatarUrl: string | null = null;
+    if (avatarFile && avatarFile.size > 0) {
+        newAvatarUrl = await uploadImage(avatarFile, 'site-assets', `${user.uid}/`);
+        updates.avatar_url = newAvatarUrl;
+    }
+
+    // --- Step 3: Update the profiles table ---
+    const { data: updatedProfile, error: profileError } = await supabaseAdmin
+        .from('profiles')
+        .update(updates)
         .eq('id', user.uid)
         .select()
         .single();
-        
-    if (profileError || !profileData) return { success: false, message: 'Gagal memperbarui profil di database.' };
 
-    // Update user metadata in 'auth.users'
-    const { data: authData, error: authError } = await supabase.auth.updateUser({
-        data: { 
-            display_name: displayName,
-            avatar_url: avatarUrl || user.photoURL // Use new URL, or keep old if no new one
+    if (profileError) {
+        console.error("Profile update error:", profileError);
+        return { success: false, message: `Gagal memperbarui profil: ${profileError.message}` };
+    }
+
+    // --- Step 4: Update auth.users metadata ---
+    const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
+      user.uid,
+      { user_metadata: { 
+            display_name: updatedProfile.display_name,
+            username: updatedProfile.username,
+            avatar_url: updatedProfile.avatar_url 
+        } }
+    );
+
+    if (authError) {
+        console.error(`Auth metadata update error:`, authError);
+        // Although this is an error, we don't return here to allow old avatar deletion.
+        // The primary profile data is already updated.
+    }
+
+    // --- Step 5: Delete old avatar from storage if a new one was uploaded ---
+    if (newAvatarUrl && oldAvatarUrl) {
+        const oldAvatarPath = getPathFromUrl(oldAvatarUrl, 'site-assets');
+        const { error: deleteError } = await supabaseAdmin.storage.from('site-assets').remove([oldAvatarPath]);
+        if (deleteError) {
+            // Log this error but don't fail the whole operation, as the main goal was achieved.
+            console.error(`Failed to delete old avatar: ${deleteError.message}`);
         }
-    });
-
-    if (authError || !authData.user) return { success: false, message: 'Gagal memperbarui data autentikasi.' };
+    }
 
     await logActivity('Ubah Profil', 'Profil pengguna telah diperbarui.', user);
     
-    const updatedUser: MockUser = {
+    const updatedUserForClient: MockUser = {
         ...user,
-        displayName: profileData.display_name,
-        username: profileData.username,
-        photoURL: profileData.avatar_url
+        displayName: updatedProfile.display_name,
+        username: updatedProfile.username,
+        photoURL: updatedProfile.avatar_url,
     };
     
-    return { success: true, message: 'Profil berhasil diperbarui.', data: updatedUser };
+    revalidatePath('/profile/settings');
+    revalidatePath('/', 'layout');
+
+    return { success: true, message: 'Profil berhasil diperbarui.', data: updatedUserForClient };
 });
 
 
@@ -775,41 +823,134 @@ export const changeUserPassword = userAction(async (user, currentPass: string, n
     return { success: false, message: 'Fitur ubah kata sandi harus dilakukan dari sisi klien.' };
 });
 
-const changeRentalStatus = adminAction(async (user, rentalId: number, newStatus: RentalStatus, logAction: string) => {
+// Helper function to adjust product stock
+async function adjustStock(rentalId: number, direction: 'increment' | 'decrement'): Promise<{success: boolean, message: string}> {
+    const supabase = createSupabaseAdminClient();
+    
+    const { data: rental, error: rentalError } = await supabase.from('rentals').select('items').eq('id', rentalId).single();
+    if (rentalError || !rental) {
+        return { success: false, message: 'Rental not found.' };
+    }
+
+    const { data: products, error: productError } = await supabase.from('products').select('id, stock').in('id', rental.items.map(i => i.id));
+    if (productError || !products) {
+        return { success: false, message: 'Products not found.' };
+    }
+    
+    const productStockMap = new Map(products.map(p => [p.id, p.stock]));
+
+    for (const item of rental.items) {
+        const currentStock = productStockMap.get(item.id);
+        if (currentStock === undefined) {
+            return { success: false, message: `Product with ID ${item.id} not found.` };
+        }
+        
+        let newStock;
+        if (direction === 'decrement') {
+            if (currentStock < item.quantity) {
+                return { success: false, message: `Stok tidak cukup untuk produk: ${item.name}.` };
+            }
+            newStock = currentStock - item.quantity;
+        } else {
+            newStock = currentStock + item.quantity;
+        }
+        
+        const newAvailability = newStock > 0 ? 'Tersedia' : 'Tidak Tersedia';
+
+        const { error } = await supabase
+            .from('products')
+            .update({ stock: newStock, availability: newAvailability })
+            .eq('id', item.id);
+            
+        if (error) {
+            return { success: false, message: `Gagal memperbarui stok untuk ${item.name}: ${error.message}` };
+        }
+    }
+
+    return { success: true, message: 'Stock adjusted successfully' };
+}
+
+export const activateRental = adminAction(async (user, rentalId: number) => {
+    const stockResult = await adjustStock(rentalId, 'decrement');
+    if (!stockResult.success) {
+        return stockResult;
+    }
+
     const supabase = createClientForActions();
-    const { data, error } = await supabase.from('rentals').update({ status: newStatus }).eq('id', rentalId).select().single();
-    if (error) return { success: false, message: `Gagal memperbarui status: ${error.message}` };
+    const { error } = await supabase.from('rentals').update({ status: 'active' }).eq('id', rentalId);
+    if (error) {
+        // Try to revert stock if status update fails
+        await adjustStock(rentalId, 'increment');
+        return { success: false, message: `Gagal mengaktifkan: ${error.message}` };
+    }
 
-    await logActivity(logAction, `Status penyewaan ID ${rentalId} diubah menjadi ${newStatus}.`, user);
-
+    await logActivity('Aktifkan Penyewaan', `Status penyewaan ID ${rentalId} diubah menjadi active.`, user);
     revalidatePath('/dashboard/rentals');
+    revalidatePath('/dashboard/products');
     revalidatePath('/profile');
-    return { success: true, message: 'Status penyewaan berhasil diperbarui.' };
+    return { success: true, message: 'Penyewaan berhasil diaktifkan dan stok diperbarui.' };
 });
 
-export const activateRental = async (rentalId: number) => changeRentalStatus(rentalId, 'active', 'Aktifkan Penyewaan');
-export const cancelRental = async (rentalId: number) => changeRentalStatus(rentalId, 'cancelled', 'Batalkan Penyewaan');
+
+export const cancelRental = adminAction(async (user, rentalId: number) => {
+    const stockResult = await adjustStock(rentalId, 'increment');
+    if (!stockResult.success) {
+        return stockResult;
+    }
+
+    const supabase = createClientForActions();
+    const { error } = await supabase.from('rentals').update({ status: 'cancelled' }).eq('id', rentalId);
+     if (error) {
+        // Try to revert stock if status update fails
+        await adjustStock(rentalId, 'decrement');
+        return { success: false, message: `Gagal membatalkan: ${error.message}` };
+    }
+
+    await logActivity('Batalkan Penyewaan', `Status penyewaan ID ${rentalId} diubah menjadi cancelled.`, user);
+    revalidatePath('/dashboard/rentals');
+    revalidatePath('/dashboard/products');
+    revalidatePath('/profile');
+    return { success: true, message: 'Penyewaan berhasil dibatalkan dan stok dikembalikan.' };
+});
 
 
 export const completeRental = adminAction(async (user, rentalId: number) => {
-    const supabase = createClientForActions();
+    const supabase = createSupabaseAdminClient();
     const { data: rental, error: rError } = await supabase.from('rentals').select('*').eq('id', rentalId).single();
     if (rError || !rental) return { success: false, message: 'Penyewaan tidak ditemukan.' };
     
+    // Only return stock if it was previously active. If it was pending and completed, stock wasn't taken.
+    if (rental.status === 'active') {
+      const stockResult = await adjustStock(rentalId, 'increment');
+      if (!stockResult.success) {
+          return stockResult;
+      }
+    }
+    
     const { error: updateError } = await supabase.from('rentals').update({ status: 'completed' }).eq('id', rentalId);
-    if (updateError) return { success: false, message: 'Gagal menyelesaikan penyewaan.' };
+    if (updateError) {
+        if (rental.status === 'active') {
+            await adjustStock(rentalId, 'decrement'); // Revert stock
+        }
+        return { success: false, message: 'Gagal menyelesaikan penyewaan.' };
+    }
     
     const { data, error } = await supabase.from('analytics').select('*').single();
-    if (error || !data) return { success: false, message: 'Gagal memperbarui analitik.' };
+    if (error || !data) {
+        // Don't fail the whole action, just log it.
+        console.error("Failed to update analytics:", error);
+    } else {
+        const analytics: AnalyticsData = data;
+        analytics.weekly_summary.total_revenue = (analytics.weekly_summary.total_revenue || 0) + rental.total;
+        analytics.weekly_summary.total_rentals = (analytics.weekly_summary.total_rentals || 0) + 1;
+        await supabase.from('analytics').update(analytics).eq('id', 1);
+    }
     
-    const analytics: AnalyticsData = data;
-    analytics.weekly_summary.total_revenue = (analytics.weekly_summary.total_revenue || 0) + rental.total;
-    analytics.weekly_summary.total_rentals = (analytics.weekly_summary.total_rentals || 0) + 1;
-    await supabase.from('analytics').update(analytics).eq('id', 1);
 
     await logActivity('Selesaikan Penyewaan', `Penyewaan ID ${rentalId} oleh ${rental.user_name} telah diselesaikan.`, user);
 
     revalidatePath('/dashboard/rentals');
+    revalidatePath('/dashboard/products');
     revalidatePath('/dashboard');
     revalidatePath('/profile');
     return { success: true, message: 'Status penyewaan berhasil diperbarui.' };
@@ -952,3 +1093,63 @@ export async function getReportData(): Promise<{ success: boolean; message: stri
     
     return { success: true, message: "Report data generated", data: base64String };
 }
+
+interface ManualOrderItem {
+    productId: number;
+    days: number;
+    quantity: number;
+}
+
+export const createManualRental = adminAction(async (adminUser, userId: string, items: ManualOrderItem[]) => {
+    const supabase = createClientForActions();
+
+    if (!userId) return { success: false, message: "Pengguna harus dipilih." };
+    if (!items || items.length === 0) return { success: false, message: "Setidaknya satu produk harus ditambahkan." };
+    
+    const { data: targetUser, error: userError } = await supabase.from('profiles').select('id, display_name').eq('id', userId).single();
+    if (userError || !targetUser) return { success: false, message: "Pengguna target tidak ditemukan." };
+
+    const productIds = items.map(item => item.productId);
+    const { data: products, error: productError } = await supabase.from('products').select('*').in('id', productIds);
+    if (productError || !products) return { success: false, message: "Gagal mengambil data produk." };
+
+    const productMap = new Map(products.map(p => [p.id, p]));
+    let total = 0;
+    const rentalItems = items.map(item => {
+        const product = productMap.get(item.productId);
+        if (!product) throw new Error(`Produk dengan ID ${item.productId} tidak ditemukan.`);
+        if (item.quantity > product.stock) {
+            throw new Error(`Stok untuk ${product.name} tidak mencukupi (tersisa ${product.stock}, diminta ${item.quantity}).`);
+        }
+        total += product.price_per_day * item.days * item.quantity;
+        return {
+            id: product.id,
+            name: product.name,
+            days: item.days,
+            price_per_day: product.price_per_day,
+            quantity: item.quantity,
+        };
+    });
+
+    const newRental: Omit<Rental, 'id' | 'checkout_date'> = {
+        user_id: targetUser.id,
+        user_name: targetUser.display_name,
+        items: rentalItems,
+        total,
+        status: 'pending',
+    };
+
+    const { error: insertError } = await supabase.from('rentals').insert(newRental);
+    if (insertError) return { success: false, message: `Gagal membuat penyewaan: ${insertError.message}` };
+
+    await logActivity(
+        'Pesanan Manual', 
+        `Admin "${adminUser.displayName}" membuat pesanan untuk "${targetUser.display_name}".`,
+        adminUser
+    );
+
+    revalidatePath('/dashboard/rentals');
+    return { success: true, message: 'Pesanan manual berhasil dibuat.' };
+});
+
+    
