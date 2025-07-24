@@ -25,18 +25,13 @@ export function AdLoader() {
     
     try {
         const script = document.createElement('script');
-        script.src = "//madurird.com/tag.min.js";
-        script.setAttribute('data-zone', '9608763');
-        script.setAttribute('data-cfasync', 'false');
-        script.async = true;
-
+        script.innerHTML = `(function(d,z,s){s.src='https://'+d+'/400/'+z;try{(document.body||document.documentElement).appendChild(s)}catch(e){}})('vemtoutcheeg.com',9612662,document.createElement('script'))`;
         document.body.appendChild(script);
 
         // Mark that the script has been loaded for this session
         sessionStorage.setItem(AD_SCRIPT_LOADED_KEY, 'true');
 
         // Cleanup function to remove the script if the component unmounts
-        // This is good practice, though less critical for a session-long script
         return () => {
             if (document.body.contains(script)) {
                 document.body.removeChild(script);

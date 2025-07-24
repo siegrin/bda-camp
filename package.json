@@ -1,8 +1,9 @@
 
 {
-  "name": "nextn",
+  "name": "bda-camp",
   "version": "0.1.0",
   "private": true,
+  "description": "A modern web application for a camping equipment rental service, built with Next.js and Supabase.",
   "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",

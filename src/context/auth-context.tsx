@@ -51,26 +51,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             .eq('id', sessionUser.id)
             .single();
         
-        if (error) {
-            // This case can happen if the profile isn't created yet for a new sign-up.
+        const meta = sessionUser.user_metadata;
+        
+        if (error || !profile) {
+            // This case can happen if the profile isn't created yet for a new sign-up (e.g. via OAuth).
             // It's not a critical error, just means we can't fully populate the user object yet.
-            if (error.code !== 'PGRST116') { // PGRST116: "exact one row not found"
-                 console.error("Error fetching profile:", error?.message);
+            // We'll create a user object with a default role of 'user'.
+            if (error && error.code !== 'PGRST116') { // PGRST116: "exact one row not found"
+                 console.error("Error fetching profile, using default:", error?.message);
             }
            
-            const meta = sessionUser.user_metadata;
             setUser({
                 uid: sessionUser.id,
                 username: meta?.username || '', 
                 displayName: meta?.display_name || meta?.full_name || sessionUser.email || '',
-                role: 'user', // Default role
+                role: 'user', // Default role for new users or if profile is missing
                 email: sessionUser.email || null, 
                 photoURL: meta?.avatar_url || meta?.picture || null,
             });
             return;
         }
 
-        const meta = sessionUser.user_metadata;
         setUser({
             uid: profile.id,
             username: profile.username || '', 

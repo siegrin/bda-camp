@@ -130,12 +130,14 @@ export const registerUser = async (email: string, pass: string, displayName: str
         return { success: false, message: 'Pendaftaran gagal: Tidak ada data pengguna yang dikembalikan.' };
     }
     
-    // The trigger should handle profile creation, but we can double-check.
+    // The trigger should handle profile creation with a default 'user' role.
+    // This update is a fallback/explicit setting to ensure the data is correct.
     const { error: profileError } = await supabaseAdmin
         .from('profiles')
         .update({ 
             display_name: displayName,
-            username: username.toLowerCase().trim()
+            username: username.toLowerCase().trim(),
+            role: 'user' // Explicitly set role
         })
         .eq('id', data.user.id);
 
@@ -1151,5 +1153,3 @@ export const createManualRental = adminAction(async (adminUser, userId: string, 
     revalidatePath('/dashboard/rentals');
     return { success: true, message: 'Pesanan manual berhasil dibuat.' };
 });
-
-    
